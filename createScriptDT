@@ -1,11 +1,12 @@
 CREATE TABLE applications (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255) UNIQUE NOT NULL,
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
     category VARCHAR(255) NOT NULL,
-    platform VARCHAR(50) NOT NULL,
+    platform VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
     developer VARCHAR(255) NOT NULL,
-    rating DOUBLE PRECISION NOT NULL CHECK (rating BETWEEN 0 AND 5),
-    downloads INT NOT NULL,
-    image_url TEXT NOT NULL
+    rating DOUBLE PRECISION NOT NULL CHECK (rating >= 0 AND rating <= 5),
+    downloads INT NOT NULL CHECK (downloads >= 0),
+    image_url VARCHAR(1000) NOT NULL,
+    is_recommended BOOLEAN NOT NULL
 );

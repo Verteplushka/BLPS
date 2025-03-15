@@ -1,4 +1,4 @@
-package Entities;
+package entities;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -17,26 +17,29 @@ public class ApplicationEntity {
     private Long id;
 
     @Column(nullable = false, unique = true)
-    private String name;  // Название приложения
+    private String name;
 
     @Column(nullable = false)
-    private String category; // Категория (игры, утилиты и т. д.)
+    private String category;
 
     @Column(nullable = false)
-    private String platform; // Android / iOS
+    private String platform;
+
+    @Column(nullable = false, length = 1000)
+    private String description;
 
     @Column(nullable = false)
-    private String description; // Описание
+    private String developer;
 
     @Column(nullable = false)
-    private String developer; // Разработчик
+    private Double rating;
 
     @Column(nullable = false)
-    private Double rating; // Рейтинг (0.0 - 5.0)
+    private Integer downloads;
 
     @Column(nullable = false)
-    private Integer downloads; // Количество скачиваний
+    private String imageUrl;
 
     @Column(nullable = false)
-    private String imageUrl; // Ссылка на изображение приложения
+    private Boolean isRecommended;  // Новое поле: является ли приложение рекомендованным
 }
