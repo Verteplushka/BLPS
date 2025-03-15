@@ -1,12 +1,10 @@
-package Controllers;
+package backend.Controllers;
 
-import Entities.ApplicationEntity;
-import Repositories.ApplicationRepository;
-import lombok.RequiredArgsConstructor;
+import backend.Entities.ApplicationEntity;
+import backend.Repositories.ApplicationRepository;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/apps")

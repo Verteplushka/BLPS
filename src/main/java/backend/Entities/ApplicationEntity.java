@@ -1,4 +1,4 @@
-package Entities;
+package backend.Entities;
 
 import jakarta.persistence.*;
 import lombok.*;

@@ -1,7 +1,7 @@
-package Repositories;
+package backend.Repositories;
 
 
-import Entities.ApplicationEntity;
+import backend.Entities.ApplicationEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
