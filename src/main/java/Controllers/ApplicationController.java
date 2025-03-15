@@ -1,6 +1,6 @@
 package Controllers;
 
-import entities.ApplicationEntity;
+import Entities.ApplicationEntity;
 import Repositories.ApplicationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
