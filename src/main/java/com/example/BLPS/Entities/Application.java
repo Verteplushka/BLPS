@@ -32,6 +32,9 @@ public class Application {
     private Float rating;
     private Integer downloads;
 
+    @Column(name = "price")
+    private Float price = 0.0f;
+
     @Column(name = "image_url")
     private String imageUrl;
 
