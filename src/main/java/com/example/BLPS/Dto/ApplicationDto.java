@@ -11,6 +11,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ApplicationDto {
+    private int id;
     private String name;
     private String developer;
     private Float rating;

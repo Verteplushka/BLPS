@@ -1,6 +1,7 @@
 package com.example.BLPS.Controllers;
 
 import com.example.BLPS.Dto.ApplicationDto;
+import com.example.BLPS.Dto.ApplicationDtoDetailed;
 import com.example.BLPS.Dto.CategoryDto;
 import com.example.BLPS.Service.ApplicationService;
 import lombok.RequiredArgsConstructor;
@@ -20,12 +21,6 @@ public class ApplicationController {
     @GetMapping
     public ResponseEntity<List<ApplicationDto>> getAllApplications() {
         return ResponseEntity.ok(applicationService.getAllApplications());
-    }
-
-    // Поиск приложения по названию
-    @GetMapping("/search")
-    public ResponseEntity<List<ApplicationDto>> searchByName(@RequestParam String name) {
-        return ResponseEntity.ok(applicationService.searchByName(name));
     }
 
     @PostMapping("/changePlatform")
@@ -50,4 +45,18 @@ public class ApplicationController {
         return ResponseEntity.ok(result);
     }
 
+    @GetMapping("/getApp")
+    public ResponseEntity<ApplicationDtoDetailed> getApp(@RequestParam Long id) {
+        try {
+            return ResponseEntity.ok(applicationService.getApp(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+    }
+
+    @GetMapping("/exactSearch")
+    public ResponseEntity<?> exactSearch(@RequestParam String name) {
+        Object result = applicationService.exactSearch(name);
+        return ResponseEntity.ok(result);
+    }
 }

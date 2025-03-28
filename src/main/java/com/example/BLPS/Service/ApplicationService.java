@@ -40,11 +40,6 @@ public class ApplicationService {
         return ApplicationMapper.toDtoList(applications);
     }
 
-    public List<ApplicationDto> searchByName(String name) {
-        List<Application> applications = applicationRepository.findByNameContainingIgnoreCaseAndPlatform(name, platform);
-        return ApplicationMapper.toDtoList(applications);
-    }
-
     public void changePlatform(String platformName) {
         Platform foundPlatform = platformRepository.findPlatformByName(platformName);
         if (foundPlatform == null) {
@@ -115,12 +110,11 @@ public class ApplicationService {
         List<Application> applications = applicationRepository.findByNameContainingIgnoreCaseAndPlatform(name, platform);
 
         if (!applications.isEmpty()) {
-            List<ApplicationDto> similarMatches = ApplicationMapper.toDtoList(applications);
-            return new SimilarMatchesDto(similarMatches, "Найдено приложение с похожим названием. Выполнен поиск по неполному совпадению.");
+            return ApplicationMapper.toDtoList(applications);
         }
 
         // Если ничего не найдено
-        return new NotFoundDto("Приложение с названием \"" + name + "\" не найдено.");
+        return new NotFoundDto("Приложение с названием \"" + name + "\" не найдено. Вот приложения, которые могут вам понравиться", getRecommendedApplications());
     }
 
     private Application findFuzzyMatch(String query) {
@@ -140,4 +134,20 @@ public class ApplicationService {
         return bestMatch;
     }
 
+    public Object exactSearch(String name){
+        List<ApplicationDto> applicationDtos =  ApplicationMapper.toDtoList(applicationRepository.findByNameContainingIgnoreCaseAndPlatform(name, platform));
+        if(!applicationDtos.isEmpty()){
+            return applicationDtos;
+        }
+
+        return new NotFoundDto("Приложение с названием \"" + name + "\" не найдено. Вот приложения, которые могут вам понравиться", getRecommendedApplications());
+    }
+
+    public ApplicationDtoDetailed getApp(Long id){
+        Application foundApplication = applicationRepository.findById(id).orElse(null);
+        if(foundApplication == null){
+            throw new RuntimeException("Application with id = " + id + " is not found");
+        }
+        return ApplicationMapper.toDtoDetailed(foundApplication);
+    }
 }

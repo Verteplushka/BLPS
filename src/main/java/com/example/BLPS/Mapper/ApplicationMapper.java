@@ -53,6 +53,7 @@ public class ApplicationMapper {
         String tag = application.getTags().get(0).getName();
 
         return new ApplicationDto(
+                application.getId(),
                 application.getDeveloper().getName(),
                 application.getName(),
                 application.getRating(),
