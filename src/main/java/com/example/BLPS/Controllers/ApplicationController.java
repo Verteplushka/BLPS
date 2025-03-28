@@ -1,9 +1,7 @@
 package com.example.BLPS.Controllers;
 
 import com.example.BLPS.Dto.ApplicationDto;
-import com.example.BLPS.Dto.ApplicationDtoDetailed;
 import com.example.BLPS.Dto.CategoryDto;
-import com.example.BLPS.Dto.SearchResultDto;
 import com.example.BLPS.Service.ApplicationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -47,8 +45,9 @@ public class ApplicationController {
 
     // Поиск приложения по названию (различные варианты совпадений)
     @GetMapping("/searchByName")
-    public ResponseEntity<SearchResultDto> searchApplications(@RequestParam String name) {
-        SearchResultDto result = applicationService.searchApplications(name);
+    public ResponseEntity<?> searchApplications(@RequestParam String name) {
+        Object result = applicationService.searchApplications(name);
         return ResponseEntity.ok(result);
     }
+
 }

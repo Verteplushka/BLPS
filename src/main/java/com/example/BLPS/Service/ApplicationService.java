@@ -1,9 +1,6 @@
 package com.example.BLPS.Service;
 
-import com.example.BLPS.Dto.ApplicationDto;
-import com.example.BLPS.Dto.ApplicationDtoDetailed;
-import com.example.BLPS.Dto.CategoryDto;
-import com.example.BLPS.Dto.SearchResultDto;
+import com.example.BLPS.Dto.*;
 import com.example.BLPS.Entities.Application;
 import com.example.BLPS.Entities.Platform;
 import com.example.BLPS.Entities.Tag;
@@ -88,28 +85,26 @@ public class ApplicationService {
     }
 
 
-    public SearchResultDto searchApplications(String name) {
-        SearchResultDto resultDto = new SearchResultDto();
-
+    public Object searchApplications(String name) {
         // Проверка на полное совпадение
         ApplicationDtoDetailed exactMatch = findByExactName(name);
         if (exactMatch != null) {
-            resultDto.setExactMatch(exactMatch);
-            resultDto.setMessage("Приложение найдено по полному совпадению.");
-            return resultDto;
+            return new ExactMatchDto(exactMatch, "Приложение найдено по полному совпадению.");
         }
 
         // Поиск по неполному совпадению
         List<Application> applications = applicationRepository.findByNameContainingIgnoreCaseAndPlatform(name, platform);
+
         if (!applications.isEmpty()) {
-            resultDto.setSimilarMatches(ApplicationMapper.toDtoList(applications));
-            resultDto.setMessage("Найдено приложение с похожим названием. Хотите выполнить поиск только по полному совпадению?");
-        } else {
-            resultDto.setMessage("Приложение с названием \"" + name + "\" не найдено.");
+            List<ApplicationDto> similarMatches = ApplicationMapper.toDtoList(applications);
+            return new SimilarMatchesDto(similarMatches, "Найдено приложение с похожим названием. Выполнен поиск по неполному совпадению.");
         }
 
-        return resultDto;
+        // Если ничего не найдено
+        return new NotFoundDto("Приложение с названием \"" + name + "\" не найдено.");
     }
+
+
 
     public List<CategoryDto> getApplicationsByCategories() {
         List<CategoryDto> categories = new ArrayList<>();
