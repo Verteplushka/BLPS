@@ -47,7 +47,12 @@ public class ApplicationService {
         return ApplicationMapper.toDtoList(applications);
     }
 
-    public void changePlatform(String platformName){
-        this.platform =  platformRepository.findPlatformByName(platformName);
+    public void changePlatform(String platformName) {
+        Platform foundPlatform = platformRepository.findPlatformByName(platformName);
+        if (foundPlatform == null) {
+            throw new RuntimeException("Platform with name '" + platformName + "' not found.");
+        }
+        this.platform = foundPlatform; // Меняем платформу только если нашли
     }
+
 }

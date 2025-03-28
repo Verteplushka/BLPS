@@ -4,6 +4,7 @@ import com.example.BLPS.Dto.ApplicationDto;
 import com.example.BLPS.Service.ApplicationService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -41,7 +42,12 @@ public class ApplicationController {
 
     @PostMapping("/changePlatform")
     public ResponseEntity<Void> changePlatform(@RequestParam String platform) {
-        applicationService.changePlatform(platform);
-        return ResponseEntity.ok().build();
+        try {
+            applicationService.changePlatform(platform);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
     }
+
 }
