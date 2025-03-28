@@ -11,17 +11,9 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ApplicationDto {
-    private Developer developer;
     private String name;
-    private String description;
+    private String developer;
     private Float rating;
-    private Integer downloads;
     private String imageUrl;
-    private Boolean hasPaidContent = true;
-    private Boolean hasAds = true;
-    private Boolean isEditorsChoice = false;
-    private Integer ageLimit;
-    private Boolean isRecommended = false;
-    private List<String> platforms;
-    private List<String> tags;
+    private String tag;
 }
