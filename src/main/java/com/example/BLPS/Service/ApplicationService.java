@@ -24,7 +24,8 @@ public class ApplicationService {
     private final PlatformRepository platformRepository;
     private final TagRepository tagRepository;
     private Platform platform;
-    public ApplicationService(ApplicationRepository applicationRepository, PlatformRepository platformRepository, TagRepository tagRepository){
+
+    public ApplicationService(ApplicationRepository applicationRepository, PlatformRepository platformRepository, TagRepository tagRepository) {
         this.applicationRepository = applicationRepository;
         this.platformRepository = platformRepository;
         this.tagRepository = tagRepository;
@@ -64,7 +65,7 @@ public class ApplicationService {
 
         for (Tag tag : tags) {
             List<Application> applications = applicationRepository.findByTagsContainingAndPlatform(tag, platform);
-            if(!applications.isEmpty()){
+            if (!applications.isEmpty()) {
                 CategoryDto categoryDto = new CategoryDto(tag.getName(), ApplicationMapper.toDtoList(applications));
                 categories.add(categoryDto);
             }
@@ -101,9 +102,11 @@ public class ApplicationService {
         }
 
         // Поиск похожего приложения
-        Application fuzzyMatch = findFuzzyMatch(name);
-        if (fuzzyMatch != null) {
-            return new ExactMatchDto(ApplicationMapper.toDtoDetailed(fuzzyMatch), "Найдено похожее приложение. Хотите вместо этого выполнить поиск по исходной строке?");
+        if (name.length() > 2) {
+            Application fuzzyMatch = findFuzzyMatch(name);
+            if (fuzzyMatch != null) {
+                return new ExactMatchDto(ApplicationMapper.toDtoDetailed(fuzzyMatch), "Найдено похожее приложение. Хотите вместо этого выполнить поиск по исходной строке?");
+            }
         }
 
         // Поиск по неполному совпадению
@@ -134,18 +137,18 @@ public class ApplicationService {
         return bestMatch;
     }
 
-    public Object exactSearch(String name){
-        List<ApplicationDto> applicationDtos =  ApplicationMapper.toDtoList(applicationRepository.findByNameContainingIgnoreCaseAndPlatform(name, platform));
-        if(!applicationDtos.isEmpty()){
+    public Object exactSearch(String name) {
+        List<ApplicationDto> applicationDtos = ApplicationMapper.toDtoList(applicationRepository.findByNameContainingIgnoreCaseAndPlatform(name, platform));
+        if (!applicationDtos.isEmpty()) {
             return applicationDtos;
         }
 
         return new NotFoundDto("Приложение с названием \"" + name + "\" не найдено. Вот приложения, которые могут вам понравиться", getRecommendedApplications());
     }
 
-    public ApplicationDtoDetailed getApp(Long id){
+    public ApplicationDtoDetailed getApp(Long id) {
         Application foundApplication = applicationRepository.findById(id).orElse(null);
-        if(foundApplication == null){
+        if (foundApplication == null) {
             throw new RuntimeException("Application with id = " + id + " is not found");
         }
         return ApplicationMapper.toDtoDetailed(foundApplication);
