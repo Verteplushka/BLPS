@@ -8,11 +8,15 @@ import com.example.BLPS.Mapper.ApplicationMapper;
 import com.example.BLPS.Repositories.ApplicationRepository;
 import com.example.BLPS.Repositories.PlatformRepository;
 import com.example.BLPS.Repositories.TagRepository;
+import com.example.BLPS.Utils.StringUtils;
 import jakarta.annotation.PostConstruct;
+import org.apache.catalina.mapper.Mapper;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class ApplicationService {
@@ -74,6 +78,15 @@ public class ApplicationService {
         return categories;
     }
 
+    public List<CategoryDto> getApplicationsByCategories() {
+        List<CategoryDto> categories = new ArrayList<>();
+        categories.add(new CategoryDto("popular", getTop10Applications()));
+        categories.add(new CategoryDto("recommended", getRecommendedApplications()));
+        categories.addAll(getApplicationsByTags());
+
+        return categories;
+    }
+
     public ApplicationDtoDetailed findByExactName(String name) {
         List<Application> applications = applicationRepository.findByNameContainingIgnoreCaseAndPlatform(name, platform);
         for (Application application : applications) {
@@ -92,6 +105,12 @@ public class ApplicationService {
             return new ExactMatchDto(exactMatch, "Приложение найдено по полному совпадению.");
         }
 
+        // Поиск похожего приложения
+        Application fuzzyMatch = findFuzzyMatch(name);
+        if (fuzzyMatch != null) {
+            return new ExactMatchDto(ApplicationMapper.toDtoDetailed(fuzzyMatch), "Найдено похожее приложение. Хотите вместо этого выполнить поиск по исходной строке?");
+        }
+
         // Поиск по неполному совпадению
         List<Application> applications = applicationRepository.findByNameContainingIgnoreCaseAndPlatform(name, platform);
 
@@ -104,15 +123,21 @@ public class ApplicationService {
         return new NotFoundDto("Приложение с названием \"" + name + "\" не найдено.");
     }
 
+    private Application findFuzzyMatch(String query) {
+        List<Application> allApplications = applicationRepository.findAll();
+        Application bestMatch = null;
+        int bestDistance = Integer.MAX_VALUE;
 
+        for (Application app : allApplications) {
+            int distance = StringUtils.levenshteinDistance(query.toLowerCase(), app.getName().toLowerCase());
 
-    public List<CategoryDto> getApplicationsByCategories() {
-        List<CategoryDto> categories = new ArrayList<>();
-        categories.add(new CategoryDto("popular", getTop10Applications()));
-        categories.add(new CategoryDto("recommended", getRecommendedApplications()));
-        categories.addAll(getApplicationsByTags());
+            if (distance <= 3 && distance < bestDistance) {
+                bestDistance = distance;
+                bestMatch = app;
+            }
+        }
 
-        return categories;
+        return bestMatch;
     }
 
 }
