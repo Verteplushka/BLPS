@@ -1,6 +1,7 @@
 package com.example.BLPS.Controllers;
 
 import com.example.BLPS.Dto.ApplicationDto;
+import com.example.BLPS.Dto.CategoryDto;
 import com.example.BLPS.Service.ApplicationService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -48,6 +49,11 @@ public class ApplicationController {
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
+    }
+
+    @GetMapping("/categories")
+    public ResponseEntity<List<CategoryDto>> getCategories() {
+        return ResponseEntity.ok(applicationService.getApplicationsByCategory());
     }
 
 }

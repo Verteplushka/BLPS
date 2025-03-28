@@ -2,6 +2,7 @@ package com.example.BLPS.Repositories;
 
 import com.example.BLPS.Entities.Application;
 import com.example.BLPS.Entities.Platform;
+import com.example.BLPS.Entities.Tag;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -21,6 +22,9 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
 
     @Query("SELECT a FROM Application a JOIN a.platforms p WHERE p = :platform AND LOWER(a.name) LIKE LOWER(CONCAT('%', :name, '%'))")
     List<Application> findByNameContainingIgnoreCaseAndPlatform(String name, Platform platform);
+
+    @Query("SELECT a FROM Application a JOIN a.tags t JOIN a.platforms p WHERE t = :tag AND p = :platform")
+    List<Application> findByTagsContainingAndPlatform(Tag tag, Platform platform);
 }
 
 
