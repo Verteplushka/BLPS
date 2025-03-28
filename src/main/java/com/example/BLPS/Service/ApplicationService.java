@@ -75,5 +75,21 @@ public class ApplicationService {
 
         return categories;
     }
+    public ApplicationDto findByExactName(String name) {
+        List<Application> applications = applicationRepository.findByNameContainingIgnoreCaseAndPlatform(name, platform);
+        for (Application application : applications) {
+            if (application.getName().equalsIgnoreCase(name)) {
+                return ApplicationMapper.toDto(application);
+            }
+        }
+        return null;
+    }
+
+    public List<ApplicationDto> findSimilarApplications(String name) {
+        // This will return all applications containing the input name, which can be considered similar matches
+        List<Application> applications = applicationRepository.findByNameContainingIgnoreCaseAndPlatform(name, platform);
+        return ApplicationMapper.toDtoList(applications);
+    }
+
 
 }

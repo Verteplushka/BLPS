@@ -55,5 +55,22 @@ public class ApplicationController {
     public ResponseEntity<List<CategoryDto>> getCategories() {
         return ResponseEntity.ok(applicationService.getApplicationsByCategory());
     }
+    // Поиск приложения по названию (различные варианты совпадений)
+    @GetMapping("/searchByName")
+    public ResponseEntity<?> searchApplications(@RequestParam String name) {
+        ApplicationDto exactMatch = applicationService.findByExactName(name);
+        if (exactMatch != null) {
+            return ResponseEntity.ok(exactMatch);
+        }
+
+        List<ApplicationDto> similarMatches = applicationService.findSimilarApplications(name);
+        if (!similarMatches.isEmpty()) {
+            return ResponseEntity.ok(similarMatches);
+        }
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body("Приложение с названием \"" + name + "\" не найдено.");
+    }
+
 
 }
