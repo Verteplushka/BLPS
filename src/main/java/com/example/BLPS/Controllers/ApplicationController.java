@@ -2,12 +2,10 @@ package com.example.BLPS.Controllers;
 
 import com.example.BLPS.Dto.ApplicationDto;
 import com.example.BLPS.Service.ApplicationService;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -41,9 +39,9 @@ public class ApplicationController {
         return ResponseEntity.ok(applicationService.searchByName(name));
     }
 
-    // Поиск приложения по платформе
-    @GetMapping("/platform")
-    public ResponseEntity<List<ApplicationDto>> searchByPlatform(@RequestParam String platform) {
-        return ResponseEntity.ok(applicationService.searchByPlatform(platform));
+    @PostMapping("/changePlatform")
+    public ResponseEntity<Void> changePlatform(@RequestParam String platform) {
+        applicationService.changePlatform(platform);
+        return ResponseEntity.ok().build();
     }
 }

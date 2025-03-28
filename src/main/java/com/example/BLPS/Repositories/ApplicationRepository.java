@@ -1,9 +1,9 @@
 package com.example.BLPS.Repositories;
 
 import com.example.BLPS.Entities.Application;
+import com.example.BLPS.Entities.Platform;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -11,13 +11,16 @@ import java.util.List;
 @Repository
 public interface ApplicationRepository extends JpaRepository<Application, Long> {
 
-    List<Application> findTop10ByOrderByRatingDesc();
+    List<Application> findByPlatformsContaining(Platform platform);
 
-    List<Application> findByIsRecommendedTrue();
+    @Query("SELECT a FROM Application a JOIN a.platforms p WHERE p = :platform ORDER BY a.rating DESC LIMIT 10")
+    List<Application> findTop10ByPlatformOrderByRatingDesc(Platform platform);
 
-    List<Application> findByNameContainingIgnoreCase(String name);
+    @Query("SELECT a FROM Application a JOIN a.platforms p WHERE p = :platform AND a.isRecommended = TRUE")
+    List<Application> findByPlatformAndIsRecommendedTrue(Platform platform);
 
-    @Query("SELECT a FROM Application a JOIN a.platforms p WHERE p.name = :platform")
-    List<Application> findByPlatform(@Param("platform") String platform);
+    @Query("SELECT a FROM Application a JOIN a.platforms p WHERE p = :platform AND LOWER(a.name) LIKE LOWER(CONCAT('%', :name, '%'))")
+    List<Application> findByNameContainingIgnoreCaseAndPlatform(String name, Platform platform);
 }
+
 
