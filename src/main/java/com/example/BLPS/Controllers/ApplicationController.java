@@ -2,6 +2,7 @@ package com.example.BLPS.Controllers;
 
 import com.example.BLPS.Dto.ApplicationDto;
 import com.example.BLPS.Dto.CategoryDto;
+import com.example.BLPS.Dto.SearchResultDto;
 import com.example.BLPS.Service.ApplicationService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -57,20 +58,11 @@ public class ApplicationController {
     }
     // Поиск приложения по названию (различные варианты совпадений)
     @GetMapping("/searchByName")
-    public ResponseEntity<?> searchApplications(@RequestParam String name) {
-        ApplicationDto exactMatch = applicationService.findByExactName(name);
-        if (exactMatch != null) {
-            return ResponseEntity.ok(exactMatch);
-        }
-
-        List<ApplicationDto> similarMatches = applicationService.findSimilarApplications(name);
-        if (!similarMatches.isEmpty()) {
-            return ResponseEntity.ok(similarMatches);
-        }
-
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body("Приложение с названием \"" + name + "\" не найдено.");
+    public ResponseEntity<SearchResultDto> searchApplications(@RequestParam String name) {
+        SearchResultDto result = applicationService.searchApplications(name);
+        return ResponseEntity.ok(result);
     }
+
 
 
 }

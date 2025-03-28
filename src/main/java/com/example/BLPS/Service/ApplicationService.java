@@ -2,6 +2,7 @@ package com.example.BLPS.Service;
 
 import com.example.BLPS.Dto.ApplicationDto;
 import com.example.BLPS.Dto.CategoryDto;
+import com.example.BLPS.Dto.SearchResultDto;
 import com.example.BLPS.Entities.Application;
 import com.example.BLPS.Entities.Platform;
 import com.example.BLPS.Entities.Tag;
@@ -85,11 +86,30 @@ public class ApplicationService {
         return null;
     }
 
-    public List<ApplicationDto> findSimilarApplications(String name) {
-        // This will return all applications containing the input name, which can be considered similar matches
+
+    public SearchResultDto searchApplications(String name) {
+        SearchResultDto resultDto = new SearchResultDto();
+
+        // Проверка на полное совпадение
+        ApplicationDto exactMatch = findByExactName(name);
+        if (exactMatch != null) {
+            resultDto.setExactMatch(exactMatch);
+            resultDto.setMessage("Приложение найдено по полному совпадению.");
+            return resultDto;
+        }
+
+        // Поиск по неполному совпадению
         List<Application> applications = applicationRepository.findByNameContainingIgnoreCaseAndPlatform(name, platform);
-        return ApplicationMapper.toDtoList(applications);
+        if (!applications.isEmpty()) {
+            resultDto.setSimilarMatches(ApplicationMapper.toDtoList(applications));
+            resultDto.setMessage("Найдено приложение с похожим названием. Хотите выполнить поиск только по полному совпадению?");
+        } else {
+            resultDto.setMessage("Приложение с названием \"" + name + "\" не найдено.");
+        }
+
+        return resultDto;
     }
+
 
 
 }
