@@ -10,7 +10,6 @@ import com.example.BLPS.Repositories.ApplicationRepository;
 import com.example.BLPS.Repositories.PlatformRepository;
 import com.example.BLPS.Repositories.TagRepository;
 import jakarta.annotation.PostConstruct;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -38,16 +37,6 @@ public class ApplicationService {
         return ApplicationMapper.toDtoList(applications);
     }
 
-    public List<ApplicationDto> getTop10Applications() {
-        List<Application> applications = applicationRepository.findTop10ByPlatformOrderByRatingDesc(platform);
-        return ApplicationMapper.toDtoList(applications);
-    }
-
-    public List<ApplicationDto> getRecommendedApplications() {
-        List<Application> applications = applicationRepository.findByPlatformAndIsRecommendedTrue(platform);
-        return ApplicationMapper.toDtoList(applications);
-    }
-
     public List<ApplicationDto> searchByName(String name) {
         List<Application> applications = applicationRepository.findByNameContainingIgnoreCaseAndPlatform(name, platform);
         return ApplicationMapper.toDtoList(applications);
@@ -61,7 +50,17 @@ public class ApplicationService {
         this.platform = foundPlatform;
     }
 
-    public List<CategoryDto> getApplicationsByCategory() {
+    private List<ApplicationDto> getTop10Applications() {
+        List<Application> applications = applicationRepository.findTop10ByPlatformOrderByRatingDesc(platform);
+        return ApplicationMapper.toDtoList(applications);
+    }
+
+    private List<ApplicationDto> getRecommendedApplications() {
+        List<Application> applications = applicationRepository.findByPlatformAndIsRecommendedTrue(platform);
+        return ApplicationMapper.toDtoList(applications);
+    }
+
+    private List<CategoryDto> getApplicationsByTags() {
         List<Tag> tags = tagRepository.findAll();
         List<CategoryDto> categories = new ArrayList<>();
 
@@ -76,4 +75,12 @@ public class ApplicationService {
         return categories;
     }
 
+    public List<CategoryDto> getApplicationsByCategories() {
+        List<CategoryDto> categories = new ArrayList<>();
+        categories.add(new CategoryDto("popular", getTop10Applications()));
+        categories.add(new CategoryDto("recommended", getRecommendedApplications()));
+        categories.addAll(getApplicationsByTags());
+
+        return categories;
+    }
 }
