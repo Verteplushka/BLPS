@@ -1,6 +1,7 @@
 package com.example.BLPS.Service;
 
 import com.example.BLPS.Dto.ApplicationDto;
+import com.example.BLPS.Dto.ApplicationDtoDetailed;
 import com.example.BLPS.Dto.CategoryDto;
 import com.example.BLPS.Entities.Application;
 import com.example.BLPS.Entities.Platform;
@@ -74,11 +75,12 @@ public class ApplicationService {
 
         return categories;
     }
-    public ApplicationDto findByExactName(String name) {
+
+    public ApplicationDtoDetailed findByExactName(String name) {
         List<Application> applications = applicationRepository.findByNameContainingIgnoreCaseAndPlatform(name, platform);
         for (Application application : applications) {
             if (application.getName().equalsIgnoreCase(name)) {
-                return ApplicationMapper.toDto(application);
+                return ApplicationMapper.toDtoDetailed(application);
             }
         }
         return null;

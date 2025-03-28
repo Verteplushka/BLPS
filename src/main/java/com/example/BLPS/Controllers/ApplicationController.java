@@ -1,6 +1,7 @@
 package com.example.BLPS.Controllers;
 
 import com.example.BLPS.Dto.ApplicationDto;
+import com.example.BLPS.Dto.ApplicationDtoDetailed;
 import com.example.BLPS.Dto.CategoryDto;
 import com.example.BLPS.Service.ApplicationService;
 import lombok.RequiredArgsConstructor;
@@ -42,10 +43,11 @@ public class ApplicationController {
     public ResponseEntity<List<CategoryDto>> getCategories() {
         return ResponseEntity.ok(applicationService.getApplicationsByCategories());
     }
+
     // Поиск приложения по названию (различные варианты совпадений)
     @GetMapping("/searchByName")
     public ResponseEntity<?> searchApplications(@RequestParam String name) {
-        ApplicationDto exactMatch = applicationService.findByExactName(name);
+        ApplicationDtoDetailed exactMatch = applicationService.findByExactName(name);
         if (exactMatch != null) {
             return ResponseEntity.ok(exactMatch);
         }
