@@ -49,7 +49,7 @@ public class ApplicationService {
         return ApplicationMapper.toDtoList(applications);
     }
 
-    private List<ApplicationDto> getRecommendedApplications() {
+    public List<ApplicationDto> getRecommendedApplications() {
         List<Application> applications = applicationRepository.findByPlatformAndIsRecommendedTrue(platform);
         return ApplicationMapper.toDtoList(applications);
     }
@@ -133,13 +133,12 @@ public class ApplicationService {
         return bestMatch;
     }
 
-    public Object exactSearch(String name) {
-        List<ApplicationDto> applicationDtos = ApplicationMapper.toDtoList(applicationRepository.findByNameContainingIgnoreCaseAndPlatform(name, platform));
-        if (!applicationDtos.isEmpty()) {
-            return applicationDtos;
+    public List<ApplicationDto> exactSearch(String name) {
+        List<ApplicationDto> applicationDtos =  ApplicationMapper.toDtoList(applicationRepository.findByNameContainingIgnoreCaseAndPlatform(name, platform));
+        if (applicationDtos.isEmpty()) {
+            throw new RuntimeException("No applications found for exact search with name \" " + name + "\"");
         }
-        //todo response перенести на уровень контроллера, тут возвращаем только DTO
-        return new NotFoundDto("Приложение с названием \"" + name + "\" не найдено. Вот приложения, которые могут вам понравиться", getRecommendedApplications());
+        return applicationDtos;
     }
 
     public ApplicationDtoDetailed getApp(Long id) {

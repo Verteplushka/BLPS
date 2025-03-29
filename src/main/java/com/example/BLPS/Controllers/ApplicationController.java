@@ -3,6 +3,7 @@ package com.example.BLPS.Controllers;
 import com.example.BLPS.Dto.ApplicationDto;
 import com.example.BLPS.Dto.ApplicationDtoDetailed;
 import com.example.BLPS.Dto.CategoryDto;
+import com.example.BLPS.Dto.NotFoundDto;
 import com.example.BLPS.Service.ApplicationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -16,12 +17,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ApplicationController {
     private final ApplicationService applicationService;
-
-    // Получить весь каталог приложений
-    @GetMapping
-    public ResponseEntity<List<ApplicationDto>> getAllApplications() {
-        return ResponseEntity.ok(applicationService.getAllApplications());
-    }
 
     @PostMapping("/changePlatform")
     public ResponseEntity<Void> changePlatform(@RequestParam String platform) {
@@ -56,7 +51,10 @@ public class ApplicationController {
 
     @GetMapping("/exactSearch")
     public ResponseEntity<?> exactSearch(@RequestParam String name) {
-        Object result = applicationService.exactSearch(name);
-        return ResponseEntity.ok(result);
+        try{
+            return ResponseEntity.ok(applicationService.exactSearch(name));
+        } catch (RuntimeException e) {
+            return ResponseEntity.ok(new NotFoundDto("Приложение с названием \"" + name + "\" не найдено. Вот приложения, которые могут вам понравиться", applicationService.getRecommendedApplications()));
+        }
     }
 }
