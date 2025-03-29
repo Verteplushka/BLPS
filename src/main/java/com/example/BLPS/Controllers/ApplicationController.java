@@ -1,9 +1,11 @@
 package com.example.BLPS.Controllers;
 
-import com.example.BLPS.Dto.ApplicationDto;
 import com.example.BLPS.Dto.ApplicationDtoDetailed;
 import com.example.BLPS.Dto.CategoryDto;
 import com.example.BLPS.Dto.NotFoundDto;
+import com.example.BLPS.Exceptions.AppNotFoundException;
+import com.example.BLPS.Exceptions.AppsNotFoundException;
+import com.example.BLPS.Exceptions.PlatformNotFoundException;
 import com.example.BLPS.Service.ApplicationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -23,7 +25,7 @@ public class ApplicationController {
         try {
             applicationService.changePlatform(platform);
             return ResponseEntity.ok().build();
-        } catch (RuntimeException e) {
+        } catch (PlatformNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
     }
@@ -44,7 +46,7 @@ public class ApplicationController {
     public ResponseEntity<ApplicationDtoDetailed> getApp(@RequestParam Long id) {
         try {
             return ResponseEntity.ok(applicationService.getApp(id));
-        } catch (RuntimeException e) {
+        } catch (AppNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
     }
@@ -53,7 +55,7 @@ public class ApplicationController {
     public ResponseEntity<?> exactSearch(@RequestParam String name) {
         try{
             return ResponseEntity.ok(applicationService.exactSearch(name));
-        } catch (RuntimeException e) {
+        } catch (AppsNotFoundException e) {
             return ResponseEntity.ok(new NotFoundDto("Приложение с названием \"" + name + "\" не найдено. Вот приложения, которые могут вам понравиться", applicationService.getRecommendedApplications()));
         }
     }

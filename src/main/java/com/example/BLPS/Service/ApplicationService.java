@@ -4,6 +4,9 @@ import com.example.BLPS.Dto.*;
 import com.example.BLPS.Entities.Application;
 import com.example.BLPS.Entities.Platform;
 import com.example.BLPS.Entities.Tag;
+import com.example.BLPS.Exceptions.AppNotFoundException;
+import com.example.BLPS.Exceptions.AppsNotFoundException;
+import com.example.BLPS.Exceptions.PlatformNotFoundException;
 import com.example.BLPS.Mapper.ApplicationMapper;
 import com.example.BLPS.Repositories.ApplicationRepository;
 import com.example.BLPS.Utils.StringUtils;
@@ -39,7 +42,7 @@ public class ApplicationService {
     public void changePlatform(String platformName) {
         Platform foundPlatform = platformService.findPlatformByName(platformName);
         if (foundPlatform == null) {
-            throw new RuntimeException("Platform with name '" + platformName + "' not found.");
+            throw new PlatformNotFoundException("Platform with name '" + platformName + "' not found.");
         }
         this.platform = foundPlatform;
     }
@@ -136,7 +139,7 @@ public class ApplicationService {
     public List<ApplicationDto> exactSearch(String name) {
         List<ApplicationDto> applicationDtos =  ApplicationMapper.toDtoList(applicationRepository.findByNameContainingIgnoreCaseAndPlatform(name, platform));
         if (applicationDtos.isEmpty()) {
-            throw new RuntimeException("No applications found for exact search with name \" " + name + "\"");
+            throw new AppsNotFoundException("No applications found for exact search with name \" " + name + "\"");
         }
         return applicationDtos;
     }
@@ -144,7 +147,7 @@ public class ApplicationService {
     public ApplicationDtoDetailed getApp(Long id) {
         Application foundApplication = applicationRepository.findById(id).orElse(null);
         if (foundApplication == null) {
-            throw new RuntimeException("Application with id = " + id + " is not found");
+            throw new AppNotFoundException("Application with id = " + id + " is not found");
         }
         return ApplicationMapper.toDtoDetailed(foundApplication);
     }
