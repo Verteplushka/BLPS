@@ -6,34 +6,29 @@ import com.example.BLPS.Entities.Platform;
 import com.example.BLPS.Entities.Tag;
 import com.example.BLPS.Mapper.ApplicationMapper;
 import com.example.BLPS.Repositories.ApplicationRepository;
-import com.example.BLPS.Repositories.PlatformRepository;
-import com.example.BLPS.Repositories.TagRepository;
 import com.example.BLPS.Utils.StringUtils;
 import jakarta.annotation.PostConstruct;
-import org.apache.catalina.mapper.Mapper;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Service
 public class ApplicationService {
     private final ApplicationRepository applicationRepository;
-    private final PlatformRepository platformRepository;
-    private final TagRepository tagRepository;
+    private final PlatformService platformService;
+    private final TagService tagService;
     private Platform platform;
 
-    public ApplicationService(ApplicationRepository applicationRepository, PlatformRepository platformRepository, TagRepository tagRepository) {
+    public ApplicationService(ApplicationRepository applicationRepository, PlatformService platformService, TagService tagService) {
         this.applicationRepository = applicationRepository;
-        this.platformRepository = platformRepository;
-        this.tagRepository = tagRepository;
+        this.platformService = platformService;
+        this.tagService = tagService;
     }
 
     @PostConstruct
     private void init() {
-        this.platform = platformRepository.findPlatformByName("phone");
+        this.platform = platformService.findPlatformByName("phone");
     }
 
     public List<ApplicationDto> getAllApplications() {
@@ -42,7 +37,7 @@ public class ApplicationService {
     }
 
     public void changePlatform(String platformName) {
-        Platform foundPlatform = platformRepository.findPlatformByName(platformName);
+        Platform foundPlatform = platformService.findPlatformByName(platformName);
         if (foundPlatform == null) {
             throw new RuntimeException("Platform with name '" + platformName + "' not found.");
         }
@@ -60,7 +55,7 @@ public class ApplicationService {
     }
 
     private List<CategoryDto> getApplicationsByTags() {
-        List<Tag> tags = tagRepository.findAll();
+        List<Tag> tags = tagService.findAll();
         List<CategoryDto> categories = new ArrayList<>();
 
         for (Tag tag : tags) {
@@ -76,6 +71,7 @@ public class ApplicationService {
 
     public List<CategoryDto> getApplicationsByCategories() {
         List<CategoryDto> categories = new ArrayList<>();
+        //todo на enum переписать
         categories.add(new CategoryDto("popular", getTop10Applications()));
         categories.add(new CategoryDto("recommended", getRecommendedApplications()));
         categories.addAll(getApplicationsByTags());
@@ -142,7 +138,7 @@ public class ApplicationService {
         if (!applicationDtos.isEmpty()) {
             return applicationDtos;
         }
-
+        //todo response перенести на уровень контроллера, тут возвращаем только DTO
         return new NotFoundDto("Приложение с названием \"" + name + "\" не найдено. Вот приложения, которые могут вам понравиться", getRecommendedApplications());
     }
 
