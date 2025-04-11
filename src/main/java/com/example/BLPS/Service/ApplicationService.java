@@ -2,6 +2,7 @@ package com.example.BLPS.Service;
 
 import com.example.BLPS.Dto.*;
 import com.example.BLPS.Entities.Application;
+import com.example.BLPS.Entities.Developer;
 import com.example.BLPS.Entities.Platform;
 import com.example.BLPS.Entities.Tag;
 import com.example.BLPS.Exceptions.AppNotFoundException;
@@ -11,6 +12,7 @@ import com.example.BLPS.Mapper.ApplicationMapper;
 import com.example.BLPS.Repositories.ApplicationRepository;
 import com.example.BLPS.Utils.StringUtils;
 import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -21,12 +23,15 @@ public class ApplicationService {
     private final ApplicationRepository applicationRepository;
     private final PlatformService platformService;
     private final TagService tagService;
+    private final DeveloperService developerService;
     private Platform platform;
 
-    public ApplicationService(ApplicationRepository applicationRepository, PlatformService platformService, TagService tagService) {
+    @Autowired
+    public ApplicationService(ApplicationRepository applicationRepository, PlatformService platformService, TagService tagService, DeveloperService developerService) {
         this.applicationRepository = applicationRepository;
         this.platformService = platformService;
         this.tagService = tagService;
+        this.developerService = developerService;
     }
 
     @PostConstruct
@@ -150,5 +155,15 @@ public class ApplicationService {
             throw new AppNotFoundException("Application with id = " + id + " is not found");
         }
         return ApplicationMapper.toDtoDetailed(foundApplication);
+    }
+
+    public ApplicationDtoDetailed createApplication(CreateApplicationDto request) {
+        Developer developer = developerService.findById(request.getDeveloperId());
+
+        List<Platform> platforms = platformService.findAllById(request.getPlatformIds());
+        List<Tag> tags = tagService.findAllById(request.getTagIds());
+
+        Application application = ApplicationMapper.toEntity(request, developer, platforms, tags);
+        return ApplicationMapper.toDtoDetailed(applicationRepository.save(application));
     }
 }

@@ -2,7 +2,9 @@ package com.example.BLPS.Mapper;
 
 import com.example.BLPS.Dto.ApplicationDto;
 import com.example.BLPS.Dto.ApplicationDtoDetailed;
+import com.example.BLPS.Dto.CreateApplicationDto;
 import com.example.BLPS.Entities.Application;
+import com.example.BLPS.Entities.Developer;
 import com.example.BLPS.Entities.Platform;
 import com.example.BLPS.Entities.Tag;
 
@@ -66,5 +68,24 @@ public class ApplicationMapper {
         return applications.stream()
                 .map(ApplicationMapper::toDto)
                 .collect(Collectors.toList());
+    }
+
+    public static Application toEntity(CreateApplicationDto dto, Developer developer, List<Platform> platforms, List<Tag> tags) {
+        Application app = new Application();
+        app.setDeveloper(developer);
+        app.setName(dto.getName());
+        app.setDescription(dto.getDescription());
+        app.setPrice(dto.getPrice());
+        app.setImageUrl(dto.getImageUrl());
+        app.setHasPaidContent(dto.getHasPaidContent());
+        app.setHasAds(dto.getHasAds());
+        app.setIsEditorsChoice(dto.getIsEditorsChoice());
+        app.setAgeLimit(dto.getAgeLimit());
+        app.setIsRecommended(dto.getIsRecommended());
+        app.setPlatforms(platforms);
+        app.setTags(tags);
+        app.setDownloads(0);
+        app.setRating(0f);
+        return app;
     }
 }

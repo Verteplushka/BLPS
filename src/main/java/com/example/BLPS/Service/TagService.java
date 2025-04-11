@@ -8,10 +8,18 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
 public class TagService {
     private final TagRepository tagRepository;
+
+    public TagService(TagRepository tagRepository){
+        this.tagRepository = tagRepository;
+    }
+
     public List<Tag> findAll(){
         return tagRepository.findAll();
+    }
+
+    public List<Tag> findAllById(List<Integer> tagIds) {
+        return tagRepository.findAllById(tagIds);
     }
 }
