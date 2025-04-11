@@ -7,6 +7,7 @@ import com.example.BLPS.Entities.Platform;
 import com.example.BLPS.Entities.Tag;
 import com.example.BLPS.Exceptions.AppNotFoundException;
 import com.example.BLPS.Exceptions.AppsNotFoundException;
+import com.example.BLPS.Exceptions.CreateAppFailedException;
 import com.example.BLPS.Exceptions.PlatformNotFoundException;
 import com.example.BLPS.Mapper.ApplicationMapper;
 import com.example.BLPS.Repositories.ApplicationRepository;
@@ -14,6 +15,10 @@ import com.example.BLPS.Utils.StringUtils;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,14 +29,17 @@ public class ApplicationService {
     private final PlatformService platformService;
     private final TagService tagService;
     private final DeveloperService developerService;
+    private final PlatformTransactionManager transactionManager;
+
     private Platform platform;
 
     @Autowired
-    public ApplicationService(ApplicationRepository applicationRepository, PlatformService platformService, TagService tagService, DeveloperService developerService) {
+    public ApplicationService(ApplicationRepository applicationRepository, PlatformService platformService, TagService tagService, DeveloperService developerService, PlatformTransactionManager transactionManager) {
         this.applicationRepository = applicationRepository;
         this.platformService = platformService;
         this.tagService = tagService;
         this.developerService = developerService;
+        this.transactionManager = transactionManager;
     }
 
     @PostConstruct
@@ -158,12 +166,22 @@ public class ApplicationService {
     }
 
     public ApplicationDtoDetailed createApplication(CreateApplicationDto request) {
-        Developer developer = developerService.findById(request.getDeveloperId());
+        TransactionDefinition def = new DefaultTransactionDefinition();
+        TransactionStatus status = transactionManager.getTransaction(def);
 
-        List<Platform> platforms = platformService.findAllById(request.getPlatformIds());
-        List<Tag> tags = tagService.findAllById(request.getTagIds());
+        try {
+            Developer developer = developerService.findById(request.getDeveloperId());
+            List<Platform> platforms = platformService.findAllById(request.getPlatformIds());
+            List<Tag> tags = tagService.findAllById(request.getTagIds());
 
-        Application application = ApplicationMapper.toEntity(request, developer, platforms, tags);
-        return ApplicationMapper.toDtoDetailed(applicationRepository.save(application));
+            Application application = ApplicationMapper.toEntity(request, developer, platforms, tags);
+            Application saved = applicationRepository.save(application);
+
+            transactionManager.commit(status);
+            return ApplicationMapper.toDtoDetailed(saved);
+        } catch (Exception ex) {
+            transactionManager.rollback(status);
+            throw new CreateAppFailedException("Transaction failed: " + ex.getMessage());
+        }
     }
 }

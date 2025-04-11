@@ -2,8 +2,10 @@ package com.example.BLPS.Controllers;
 
 import com.example.BLPS.Dto.ApplicationDtoDetailed;
 import com.example.BLPS.Dto.CreateApplicationDto;
+import com.example.BLPS.Exceptions.CreateAppFailedException;
 import com.example.BLPS.Service.ApplicationService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,6 +18,10 @@ public class AdminController {
 
     @PostMapping("/createApplication")
     public ResponseEntity<ApplicationDtoDetailed> createApplication(@RequestBody CreateApplicationDto request) {
-        return ResponseEntity.ok(adminService.createApplication(request));
+        try{
+            return ResponseEntity.ok(adminService.createApplication(request));
+        } catch (CreateAppFailedException e){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
     }
 }
