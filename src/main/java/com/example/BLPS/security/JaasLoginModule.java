@@ -1,72 +1,94 @@
 package com.example.BLPS.security;
 
-import com.example.BLPS.Entities.User;
-import com.example.BLPS.Repositories.UserRepository;
+
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.client.HttpClientErrorException;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 
 import javax.security.auth.Subject;
 import javax.security.auth.callback.*;
+import javax.security.auth.login.FailedLoginException;
+import javax.security.auth.login.LoginException;
 import javax.security.auth.spi.LoginModule;
-import java.io.IOException;
-import java.nio.file.attribute.UserPrincipal;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.File;
 import java.security.Principal;
 import java.util.Map;
-import java.util.Optional;
 
 @Slf4j
 public class JaasLoginModule implements LoginModule {
-    private PasswordEncoder passwordEncoder;
-    private String login;
+
     private Subject subject;
-    private boolean loginSucceeded = false;
     private CallbackHandler callbackHandler;
-    private UserRepository userRepository;
+
+    private String username;
+    private String password;
+    private String xmlFilePath;
 
     @Override
-    public void initialize(Subject subject, CallbackHandler callbackHandler, Map<String, ?> sharedState, Map<String, ?> options) {
+    public void initialize(Subject subject, CallbackHandler callbackHandler,
+                           Map<String, ?> sharedState, Map<String, ?> options) {
         this.subject = subject;
         this.callbackHandler = callbackHandler;
-        this.userRepository = (UserRepository) options.get("userRepository");
-        this.passwordEncoder = new BCryptPasswordEncoder();
+        this.xmlFilePath = (String) options.get("xmlFilePath");
     }
 
+
     @Override
-    public boolean login() {
-        var nameCallback = new NameCallback("login: ");
-        var passwordCallback = new PasswordCallback("password: ", false);
+    public boolean login() throws LoginException {
+        // получить логин и пароль
+        NameCallback nameCallback = new NameCallback("username");
+        PasswordCallback passwordCallback = new PasswordCallback("password", false);
         try {
             callbackHandler.handle(new Callback[]{nameCallback, passwordCallback});
-        } catch (IOException | UnsupportedCallbackException e) {
-            throw new RuntimeException(e);
+        } catch (Exception e) {
+            throw new LoginException("Failed to get credentials");
         }
-        login = nameCallback.getName();
-        String password = new String(passwordCallback.getPassword());
-        Optional<User> user = userRepository.findByLogin(login);
-        loginSucceeded = user.map(u -> passwordEncoder.matches(password, u.getPassword())).orElse(false);
-        return loginSucceeded;
+
+        username = nameCallback.getName();
+        password = new String(passwordCallback.getPassword());
+
+        try {
+            File file = new File(xmlFilePath);
+            DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+            Document doc = builder.parse(file);
+            NodeList userList = doc.getElementsByTagName("user");
+
+            for (int i = 0; i < userList.getLength(); i++) {
+                Element user = (Element) userList.item(i);
+                if (user.getAttribute("username").equals(username) &&
+                        user.getAttribute("password").equals(password)) {
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            throw new LoginException("Error reading users.xml");
+        }
+
+        throw new FailedLoginException("Invalid credentials");
     }
 
     @Override
     public boolean commit() {
-        if(!loginSucceeded) return false;
-        if(login == null) throw new HttpClientErrorException(HttpStatus.UNAUTHORIZED, "login is null");
-        Principal principal = (UserPrincipal) () -> login;
-        subject.getPrincipals().add(principal);
+        subject.getPrincipals().add(new UserPrincipal(username));
         return true;
-    }
-    @Override
-    public boolean abort() {
-        return false;
     }
 
-    @Override
-    public boolean logout() {
-        subject.getPrincipals().removeIf(principal -> principal instanceof UserPrincipal);
-        loginSucceeded = false;
-        return true;
+    @Override public boolean abort() { return false; }
+    @Override public boolean logout() { return true; }
+
+    public static class UserPrincipal implements Principal {
+        private final String name;
+
+        public UserPrincipal(String name) {
+            this.name = name;
+        }
+
+        @Override public String getName() {
+            return name;
+        }
     }
 }
+

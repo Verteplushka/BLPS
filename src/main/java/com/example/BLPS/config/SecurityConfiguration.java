@@ -1,5 +1,4 @@
 package com.example.BLPS.config;
-import com.example.BLPS.Repositories.UserRepository;
 import com.example.BLPS.security.JaasAuthorityGranter;
 import com.example.BLPS.security.JaasLoginModule;
 import jakarta.servlet.http.HttpServletResponse;
@@ -27,7 +26,7 @@ import static org.springframework.security.config.Customizer.withDefaults;
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfiguration {
-    private final UserRepository userRepository;
+    private final String xmlFilePath = "src/main/resources/users.xml";
 
     @Bean
     public SecurityFilterChain securityFilterChain(final HttpSecurity http) throws Exception {
@@ -55,11 +54,12 @@ public class SecurityConfiguration {
 
     @Bean
     public InMemoryConfiguration configuration() {
-        AppConfigurationEntry configEntry = new AppConfigurationEntry(JaasLoginModule.class.getName(),
+        AppConfigurationEntry configEntry = new AppConfigurationEntry(
+                JaasLoginModule.class.getName(),
                 AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
-                Map.of("userRepository", userRepository));
-        var configurationEntries = new AppConfigurationEntry[]{configEntry};
-        return new InMemoryConfiguration(Map.of("SPRINGSECURITY", configurationEntries));
+                Map.of("xmlFilePath", xmlFilePath)
+        );
+        return new InMemoryConfiguration(Map.of("SPRINGSECURITY", new AppConfigurationEntry[]{configEntry}));
     }
 
     @Bean
@@ -67,7 +67,7 @@ public class SecurityConfiguration {
     public AuthenticationProvider jaasAuthenticationProvider(javax.security.auth.login.Configuration configuration) {
         var provider = new DefaultJaasAuthenticationProvider();
         provider.setConfiguration(configuration);
-        provider.setAuthorityGranters(new AuthorityGranter[]{new JaasAuthorityGranter(userRepository)});
+        provider.setAuthorityGranters(new AuthorityGranter[]{new JaasAuthorityGranter(xmlFilePath)});
         return provider;
     }
 }

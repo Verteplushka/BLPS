@@ -1,28 +1,55 @@
 package com.example.BLPS.security;
 
-import com.example.BLPS.Entities.User;
-import com.example.BLPS.Repositories.UserRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.jaas.AuthorityGranter;
-import org.springframework.web.client.HttpClientErrorException;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.File;
 import java.security.Principal;
 import java.util.Set;
-import java.util.stream.Collectors;
 
-@RequiredArgsConstructor
 public class JaasAuthorityGranter implements AuthorityGranter {
 
-    private final UserRepository userRepository;
+    private final String xmlFilePath;
+
+    public JaasAuthorityGranter(String xmlFilePath) {
+        this.xmlFilePath = xmlFilePath;
+    }
 
     @Override
     public Set<String> grant(Principal principal) {
-        User user = userRepository
-                .findByLogin(principal.getName())
-                .orElseThrow(() -> new HttpClientErrorException(HttpStatus.UNAUTHORIZED));
-        return user.getRole().getPrivileges().stream()
-                .map(Enum::name)
-                .collect(Collectors.toSet());
+        String username = principal.getName();
+
+        try {
+            File file = new File(xmlFilePath);
+            DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+            Document doc = builder.parse(file);
+            NodeList userList = doc.getElementsByTagName("user");
+
+            for (int i = 0; i < userList.getLength(); i++) {
+                Element user = (Element) userList.item(i);
+                if (user.getAttribute("username").equals(username)) {
+                    String role = user.getAttribute("role");
+
+                    return mapRoleToPrivileges(role);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return Set.of();
+    }
+
+    private Set<String> mapRoleToPrivileges(String role) {
+        return switch (role) {
+            case "USER" -> Set.of("VIEW_APPS", "DOWNLOAD_APP");
+            case "DEVELOPER" -> Set.of("VIEW_APPS", "UPLOAD_APP", "DELETE_OWN_APP");
+            case "ADMIN" -> Set.of("VIEW_APPS", "BAN_USER", "DELETE_ANY_APP");
+            default -> Set.of();
+        };
     }
 }

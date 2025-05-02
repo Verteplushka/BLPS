@@ -1,0 +1,5 @@
+<users>
+    <user username="vi" password="12345" role="USER"/>
+    <user username="andrei" password="12345" role="USER"/>
+    <user username="admin" password="12345" role="ADMIN"/>
+</users>
