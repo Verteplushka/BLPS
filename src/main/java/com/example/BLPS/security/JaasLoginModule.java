@@ -22,7 +22,6 @@ public class JaasLoginModule implements LoginModule {
 
     private Subject subject;
     private CallbackHandler callbackHandler;
-
     private String username;
     private String password;
     private String xmlFilePath;

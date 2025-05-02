@@ -44,6 +44,7 @@ public class ApplicationService {
 
     @PostConstruct
     private void init() {
+        System.out.println(">>> TM is: " + transactionManager.getClass().getName());
         this.platform = platformService.findPlatformByName("phone");
     }
 
