@@ -11,6 +11,7 @@ import com.example.BLPS.Repositories.ApplicationRepository;
 import com.example.BLPS.Utils.StringUtils;
 import com.example.BLPS.Utils.UserXmlReader;
 import jakarta.annotation.PostConstruct;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -276,10 +277,25 @@ public class ApplicationService {
         }
     }
 
+    public List<ApplicationDtoDetailed> getApplicationsByStatus(Status status) {
+        List<Application> apps = applicationRepository.findAllByStatus(status);
+        return apps.stream()
+                .map(ApplicationMapper::toDtoDetailed)
+                .toList();
+    }
 
-    // создание разработчика
-    // разработчик как отдельная роль
-    // у developer будет user_id и все поля разработчика останутся в developer
+    public void updateModerationStatus(Long applicationId, Status newStatus) {
+        Application app = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new EntityNotFoundException("Приложение не найдено"));
+        app.setStatus(newStatus);
+        applicationRepository.save(app);
+    }
+
+
+
+    // + создание разработчика
+    // + разработчик как отдельная роль
+    // + у developer будет user_id и все поля разработчика останутся в developer
     // блокировка разработчика (и всех его приложений, чтобы они не отображались в селектах)
     // таблица для модерации приложений (при обновлении приложения добавляется в таблицу для модерации) когда админ добавляет / обновляет приложение
 }

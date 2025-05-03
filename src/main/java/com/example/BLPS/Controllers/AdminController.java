@@ -1,27 +1,36 @@
 package com.example.BLPS.Controllers;
 
 import com.example.BLPS.Dto.ApplicationDtoDetailed;
-import com.example.BLPS.Dto.CreateApplicationDto;
-import com.example.BLPS.Exceptions.CreateAppFailedException;
+import com.example.BLPS.Entities.Status;
 import com.example.BLPS.Service.ApplicationService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
 public class AdminController {
 
-    private final ApplicationService adminService;
+    private final ApplicationService applicationService;
 
-    @PostMapping("/createApplication")
-    public ResponseEntity<ApplicationDtoDetailed> createApplication(@RequestBody CreateApplicationDto request) {
-        try{
-            return ResponseEntity.ok(adminService.createApplication(request));
-        } catch (CreateAppFailedException e){
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        }
+    @GetMapping("/pending")
+    public ResponseEntity<List<ApplicationDtoDetailed>> getPendingApplications() {
+        List<ApplicationDtoDetailed> pendingApps = applicationService.getApplicationsByStatus(Status.PENDING);
+        return ResponseEntity.ok(pendingApps);
+    }
+
+    @PostMapping("/approve/{id}")
+    public ResponseEntity<Void> approveApplication(@PathVariable Long id) {
+        applicationService.updateModerationStatus(id, Status.APPROVED);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/reject/{id}")
+    public ResponseEntity<Void> rejectApplication(@PathVariable Long id) {
+        applicationService.updateModerationStatus(id, Status.REJECTED);
+        return ResponseEntity.ok().build();
     }
 }

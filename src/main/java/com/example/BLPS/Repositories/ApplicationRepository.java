@@ -1,9 +1,6 @@
 package com.example.BLPS.Repositories;
 
-import com.example.BLPS.Entities.Application;
-import com.example.BLPS.Entities.Developer;
-import com.example.BLPS.Entities.Platform;
-import com.example.BLPS.Entities.Tag;
+import com.example.BLPS.Entities.*;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -28,6 +25,7 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     List<Application> findByTagsContainingAndPlatform(Tag tag, Platform platform);
 
     List<Application> findAllByDeveloper(Developer developer);
+    List<Application> findAllByStatus(Status status);
 }
 
 
