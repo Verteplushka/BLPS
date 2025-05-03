@@ -46,9 +46,9 @@ public class JaasAuthorityGranter implements AuthorityGranter {
 
     private Set<String> mapRoleToPrivileges(String role) {
         return switch (role) {
-            case "USER" -> Set.of("VIEW_APPS", "DOWNLOAD_APP");
-            case "DEVELOPER" -> Set.of("VIEW_APPS", "UPLOAD_APP", "DELETE_OWN_APP");
-            case "ADMIN" -> Set.of("VIEW_APPS", "BAN_USER", "DELETE_ANY_APP");
+            case "USER" -> Set.of("ROLE_USER");
+            case "DEVELOPER" -> Set.of("ROLE_DEVELOPER");
+            case "ADMIN" -> Set.of("ROLE_ADMIN");
             default -> Set.of();
         };
     }

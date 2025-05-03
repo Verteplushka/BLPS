@@ -1,4 +1,5 @@
 package com.example.BLPS.config;
+import com.example.BLPS.Entities.Role;
 import com.example.BLPS.security.JaasAuthorityGranter;
 import com.example.BLPS.security.JaasLoginModule;
 import jakarta.servlet.http.HttpServletResponse;
@@ -37,7 +38,9 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
-                        .requestMatchers("/api/auth/register").permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/developer/delete").hasAnyRole("DEVELOPER", "ADMIN")
+                        .requestMatchers("/api/developer/**").hasRole("DEVELOPER")
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(exception -> exception
