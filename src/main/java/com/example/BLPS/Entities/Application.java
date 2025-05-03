@@ -2,6 +2,7 @@ package com.example.BLPS.Entities;
 
 import jakarta.persistence.*;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -25,6 +26,11 @@ public class Application {
 
     @Column(nullable = false, length = 50)
     private String name;
+
+    @NotNull
+    @Column(name = "moderation_status")
+    @Enumerated(EnumType.STRING)
+    private Status status;
 
     @Column(columnDefinition = "TEXT")
     private String description;

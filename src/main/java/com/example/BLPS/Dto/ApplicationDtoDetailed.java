@@ -1,6 +1,7 @@
 package com.example.BLPS.Dto;
 
 import com.example.BLPS.Entities.Developer;
+import com.example.BLPS.Entities.Status;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -24,4 +25,5 @@ public class ApplicationDtoDetailed {
     private Boolean isRecommended = false;
     private List<String> platforms;
     private List<String> tags;
+    private Status status;
 }

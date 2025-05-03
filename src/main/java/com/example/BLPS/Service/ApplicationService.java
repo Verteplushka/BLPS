@@ -1,10 +1,7 @@
 package com.example.BLPS.Service;
 
 import com.example.BLPS.Dto.*;
-import com.example.BLPS.Entities.Application;
-import com.example.BLPS.Entities.Developer;
-import com.example.BLPS.Entities.Platform;
-import com.example.BLPS.Entities.Tag;
+import com.example.BLPS.Entities.*;
 import com.example.BLPS.Exceptions.AppNotFoundException;
 import com.example.BLPS.Exceptions.AppsNotFoundException;
 import com.example.BLPS.Exceptions.CreateAppFailedException;
@@ -177,7 +174,6 @@ public class ApplicationService {
             String username = authentication.getName();
             UserXmlReader reader = new UserXmlReader(xmlFilePath);
             int userId = reader.getUserIdByUsername(username);
-            System.out.println(userId);
 
             Developer developer = developerService.findByUserId(userId);
             List<Application> applications = applicationRepository.findAllByDeveloper(developer);
@@ -207,6 +203,7 @@ public class ApplicationService {
             List<Tag> tags = tagService.findAllById(request.getTagIds());
 
             Application application = ApplicationMapper.toEntity(request, developer, platforms, tags);
+            application.setStatus(Status.PENDING);
             Application saved = applicationRepository.save(application);
 
             transactionManager.commit(status);
@@ -267,6 +264,7 @@ public class ApplicationService {
             app.setDescription(updatedData.getDescription());
             app.setPlatforms(platforms);
             app.setTags(tags);
+            app.setStatus(Status.PENDING);
 
             Application saved = applicationRepository.save(app);
             transactionManager.commit(status);

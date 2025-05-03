@@ -38,9 +38,11 @@ public class ApplicationMapper {
                 application.getAgeLimit(),
                 application.getIsRecommended(),
                 platforms,
-                tags
+                tags,
+                application.getStatus()
         );
     }
+
     public static List<ApplicationDtoDetailed> toDtoDetailedList(List<Application> applications) {
         return applications.stream()
                 .map(ApplicationMapper::toDtoDetailed)
