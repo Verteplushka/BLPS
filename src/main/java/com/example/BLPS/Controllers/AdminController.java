@@ -33,4 +33,11 @@ public class AdminController {
         applicationService.updateModerationStatus(id, Status.REJECTED);
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/ban/{developerId}")
+    public ResponseEntity<Void> banDeveloper(@PathVariable Integer developerId) {
+        applicationService.rejectAllApplicationsByDeveloper(developerId);
+        return ResponseEntity.ok().build();
+    }
+
 }

@@ -52,7 +52,7 @@ public class ApplicationService {
     }
 
     public List<ApplicationDto> getAllApplications() {
-        List<Application> applications = applicationRepository.findByPlatformsContaining(platform);
+        List<Application> applications = applicationRepository.findByPlatformsContainingAndStatus(platform, Status.APPROVED);
         return ApplicationMapper.toDtoList(applications);
     }
 
@@ -65,12 +65,12 @@ public class ApplicationService {
     }
 
     private List<ApplicationDto> getTop10Applications() {
-        List<Application> applications = applicationRepository.findTop10ByPlatformOrderByRatingDesc(platform);
+        List<Application> applications = applicationRepository.findTop10ByPlatformAndStatusOrderByRatingDesc(platform, Status.APPROVED);
         return ApplicationMapper.toDtoList(applications);
     }
 
     public List<ApplicationDto> getRecommendedApplications() {
-        List<Application> applications = applicationRepository.findByPlatformAndIsRecommendedTrue(platform);
+        List<Application> applications = applicationRepository.findByPlatformAndIsRecommendedTrueAndStatus(platform, Status.APPROVED);
         return ApplicationMapper.toDtoList(applications);
     }
 
@@ -79,7 +79,7 @@ public class ApplicationService {
         List<CategoryDto> categories = new ArrayList<>();
 
         for (Tag tag : tags) {
-            List<Application> applications = applicationRepository.findByTagsContainingAndPlatform(tag, platform);
+            List<Application> applications = applicationRepository.findByTagsContainingAndPlatformAndStatus(tag, platform, Status.APPROVED);
             if (!applications.isEmpty()) {
                 CategoryDto categoryDto = new CategoryDto(tag.getName(), ApplicationMapper.toDtoList(applications));
                 categories.add(categoryDto);
@@ -100,7 +100,7 @@ public class ApplicationService {
     }
 
     public ApplicationDtoDetailed findByExactName(String name) {
-        List<Application> applications = applicationRepository.findByNameContainingIgnoreCaseAndPlatform(name, platform);
+        List<Application> applications = applicationRepository.findByNameContainingIgnoreCaseAndPlatformAndStatus(name, platform, Status.APPROVED);
         for (Application application : applications) {
             if (application.getName().equalsIgnoreCase(name)) {
                 return ApplicationMapper.toDtoDetailed(application);
@@ -126,7 +126,7 @@ public class ApplicationService {
         }
 
         // Поиск по неполному совпадению
-        List<Application> applications = applicationRepository.findByNameContainingIgnoreCaseAndPlatform(name, platform);
+        List<Application> applications = applicationRepository.findByNameContainingIgnoreCaseAndPlatformAndStatus(name, platform, Status.APPROVED);
 
         if (!applications.isEmpty()) {
             return ApplicationMapper.toDtoList(applications);
@@ -154,7 +154,7 @@ public class ApplicationService {
     }
 
     public List<ApplicationDto> exactSearch(String name) {
-        List<ApplicationDto> applicationDtos =  ApplicationMapper.toDtoList(applicationRepository.findByNameContainingIgnoreCaseAndPlatform(name, platform));
+        List<ApplicationDto> applicationDtos =  ApplicationMapper.toDtoList(applicationRepository.findByNameContainingIgnoreCaseAndPlatformAndStatus(name, platform, Status.APPROVED));
         if (applicationDtos.isEmpty()) {
             throw new AppsNotFoundException("No applications found for exact search with name \" " + name + "\"");
         }
@@ -285,12 +285,42 @@ public class ApplicationService {
     }
 
     public void updateModerationStatus(Long applicationId, Status newStatus) {
-        Application app = applicationRepository.findById(applicationId)
-                .orElseThrow(() -> new EntityNotFoundException("Приложение не найдено"));
-        app.setStatus(newStatus);
-        applicationRepository.save(app);
+        TransactionDefinition def = new DefaultTransactionDefinition();
+        TransactionStatus transaction = transactionManager.getTransaction(def);
+
+        try {
+            Application app = applicationRepository.findById(applicationId)
+                    .orElseThrow(() -> new EntityNotFoundException("App does not exist"));
+            app.setStatus(newStatus);
+            applicationRepository.save(app);
+
+            transactionManager.commit(transaction);
+        } catch (Exception e) {
+            transactionManager.rollback(transaction);
+            throw new RuntimeException("Status update error: " + e.getMessage(), e);
+        }
     }
 
+
+    public void rejectAllApplicationsByDeveloper(Integer developerId) {
+        TransactionDefinition def = new DefaultTransactionDefinition();
+        TransactionStatus status = transactionManager.getTransaction(def);
+
+        try {
+            Developer developer = developerService.findById(developerId);
+            List<Application> apps = applicationRepository.findAllByDeveloper(developer);
+
+            for (Application app : apps) {
+                app.setStatus(Status.REJECTED);
+            }
+
+            applicationRepository.saveAll(apps);
+            transactionManager.commit(status);
+        } catch (Exception ex) {
+            transactionManager.rollback(status);
+            throw new RuntimeException("Couldn't ban developer: " + ex.getMessage(), ex);
+        }
+    }
 
 
     // + создание разработчика
