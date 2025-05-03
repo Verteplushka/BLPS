@@ -1,6 +1,7 @@
 package com.example.BLPS.Repositories;
 
 import com.example.BLPS.Entities.Application;
+import com.example.BLPS.Entities.Developer;
 import com.example.BLPS.Entities.Platform;
 import com.example.BLPS.Entities.Tag;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -26,7 +27,7 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     @Query("SELECT a FROM Application a JOIN a.tags t JOIN a.platforms p WHERE t = :tag AND p = :platform")
     List<Application> findByTagsContainingAndPlatform(Tag tag, Platform platform);
 
-
+    List<Application> findAllByDeveloper(Developer developer);
 }
 
 

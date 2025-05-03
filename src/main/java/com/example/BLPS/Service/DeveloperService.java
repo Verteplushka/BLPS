@@ -18,4 +18,8 @@ public class DeveloperService {
     public Developer findById(Integer developerId) {
         return developerRepository.findById(developerId).orElse(null);
     }
+
+    public Developer findByUserId(int userId) {
+        return developerRepository.findByUserId(userId);
+    }
 }

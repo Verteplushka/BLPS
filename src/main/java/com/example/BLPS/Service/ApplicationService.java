@@ -12,8 +12,11 @@ import com.example.BLPS.Exceptions.PlatformNotFoundException;
 import com.example.BLPS.Mapper.ApplicationMapper;
 import com.example.BLPS.Repositories.ApplicationRepository;
 import com.example.BLPS.Utils.StringUtils;
+import com.example.BLPS.Utils.UserXmlReader;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -22,6 +25,7 @@ import org.springframework.transaction.support.DefaultTransactionDefinition;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class ApplicationService {
@@ -30,6 +34,7 @@ public class ApplicationService {
     private final TagService tagService;
     private final DeveloperService developerService;
     private final PlatformTransactionManager transactionManager;
+    private final String xmlFilePath = "src/main/resources/users.xml";
 
     private Platform platform;
 
@@ -166,12 +171,38 @@ public class ApplicationService {
         return ApplicationMapper.toDtoDetailed(foundApplication);
     }
 
+    public List<ApplicationDtoDetailed> getAllApplicationsForCurrentDeveloper() {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String username = authentication.getName();
+            UserXmlReader reader = new UserXmlReader(xmlFilePath);
+            int userId = reader.getUserIdByUsername(username);
+            System.out.println(userId);
+
+            Developer developer = developerService.findByUserId(userId);
+            List<Application> applications = applicationRepository.findAllByDeveloper(developer);
+
+            return applications.stream()
+                    .map(ApplicationMapper::toDtoDetailed)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to fetch developer's applications: " + e.getMessage());
+        }
+    }
+
+
     public ApplicationDtoDetailed createApplication(CreateApplicationDto request) {
         TransactionDefinition def = new DefaultTransactionDefinition();
         TransactionStatus status = transactionManager.getTransaction(def);
 
         try {
-            Developer developer = developerService.findById(request.getDeveloperId());
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String username = authentication.getName();
+            UserXmlReader reader = new UserXmlReader(xmlFilePath);
+            int userId = reader.getUserIdByUsername(username);
+
+            Developer developer = developerService.findByUserId(userId);
+
             List<Platform> platforms = platformService.findAllById(request.getPlatformIds());
             List<Tag> tags = tagService.findAllById(request.getTagIds());
 
@@ -185,6 +216,68 @@ public class ApplicationService {
             throw new CreateAppFailedException("Transaction failed: " + ex.getMessage());
         }
     }
+
+    public void deleteApplicationById(Long appId) {
+        TransactionDefinition def = new DefaultTransactionDefinition();
+        TransactionStatus status = transactionManager.getTransaction(def);
+
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String username = authentication.getName();
+            UserXmlReader reader = new UserXmlReader(xmlFilePath);
+            int userId = reader.getUserIdByUsername(username);
+            String role = reader.getUserRoleByUsername(username);
+
+            Application app = applicationRepository.findById(appId)
+                    .orElseThrow(() -> new RuntimeException("Application not found"));
+
+            if (!role.equals("ADMIN") && app.getDeveloper().getUserId() != userId) {
+                throw new RuntimeException("You don't have permission to delete this application");
+            }
+
+            applicationRepository.delete(app);
+            transactionManager.commit(status);
+        } catch (Exception e) {
+            transactionManager.rollback(status);
+            throw new RuntimeException("Failed to delete application: " + e.getMessage());
+        }
+    }
+
+    public ApplicationDtoDetailed updateApplication(Long appId, UpdateApplicationDto updatedData) {
+        TransactionDefinition def = new DefaultTransactionDefinition();
+        TransactionStatus status = transactionManager.getTransaction(def);
+
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String username = authentication.getName();
+            UserXmlReader reader = new UserXmlReader(xmlFilePath);
+            int userId = reader.getUserIdByUsername(username);
+
+            Application app = applicationRepository.findById(appId)
+                    .orElseThrow(() -> new RuntimeException("Application not found"));
+
+            if (app.getDeveloper().getUserId() != userId) {
+                throw new RuntimeException("Only the developer of this application can update it");
+            }
+
+            List<Platform> platforms = platformService.findAllById(updatedData.getPlatformIds());
+            List<Tag> tags = tagService.findAllById(updatedData.getTagIds());
+
+            app.setName(updatedData.getName());
+            app.setDescription(updatedData.getDescription());
+            app.setPlatforms(platforms);
+            app.setTags(tags);
+
+            Application saved = applicationRepository.save(app);
+            transactionManager.commit(status);
+
+            return ApplicationMapper.toDtoDetailed(saved);
+        } catch (Exception e) {
+            transactionManager.rollback(status);
+            throw new RuntimeException("Failed to update application: " + e.getMessage());
+        }
+    }
+
 
     // создание разработчика
     // разработчик как отдельная роль

@@ -6,7 +6,6 @@ import java.util.List;
 
 @Data
 public class CreateApplicationDto {
-    private Integer developerId;
     private String name;
     private String description;
     private Float price;
