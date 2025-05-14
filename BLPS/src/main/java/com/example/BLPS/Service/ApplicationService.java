@@ -14,16 +14,19 @@ import com.example.BLPS.config.MqttMessageSender;
 import jakarta.annotation.PostConstruct;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,6 +39,7 @@ public class ApplicationService {
     private final MqttMessageSender mqttMessageSender;
     private final String xmlFilePath = "src/main/resources/users.xml";
     private final String moderationQueueName = "moderation-queue";
+    private final Random random = new Random(); //Для рандомного изменения рейтинга раз в день
 
     private Platform platform;
 
@@ -216,6 +220,7 @@ public class ApplicationService {
             return ApplicationMapper.toDtoDetailed(saved);
         } catch (Exception ex) {
             transactionManager.rollback(status);
+            ex.printStackTrace(); // ← минимум, чтобы увидеть, в чём ошибка
             throw new CreateAppFailedException("Transaction failed: " + ex.getMessage());
         }
     }
@@ -328,6 +333,66 @@ public class ApplicationService {
             throw new RuntimeException("Couldn't ban developer: " + ex.getMessage(), ex);
         }
     }
+    // Метод будет вызываться каждый день в 00:00, обновляя рандомно рейтинг
+   // @Scheduled(cron = "0 0 0 * * *")
+    @Scheduled(fixedRate = 10000) // каждые 10 секунд (для отладки)
+    public void updateRatingsDaily() {
+        // Начинаем транзакцию
+        TransactionDefinition def = new DefaultTransactionDefinition();
+        TransactionStatus status = transactionManager.getTransaction(def);
+        try {
+            System.out.println("⏰ [Scheduled Task] Updating app ratings at " + java.time.LocalDateTime.now());
+            List<Application> apps = applicationRepository.findAll();
+
+            // Возможные изменения и веса (чем ближе к 0 — тем выше шанс)
+            float[] changes = {-0.5f, -0.4f, -0.3f, -0.2f, -0.1f, 0f, 0.1f, 0.2f, 0.3f, 0.4f, 0.5f};
+            double[] weights = {1, 2, 4, 6, 8, 10, 8, 6, 4, 2, 1}; // сумма: 52
+
+            double totalWeight = 0;
+            for (double w : weights) totalWeight += w;
+
+            for (Application app : apps) {
+                Float oldRating = app.getRating() != null ? app.getRating() : 0.0f;
+
+                // Выбираем случайное изменение с учётом веса
+                double rand = Math.random() * totalWeight;
+                double cumulative = 0;
+                Float change = 0f;
+
+                for (int i = 0; i < changes.length; i++) {
+                    cumulative += weights[i];
+                    if (rand <= cumulative) {
+                        change = changes[i];
+                        break;
+                    }
+                }
+
+                Float newRating = Math.max(0.0f, Math.min(5.0f, oldRating + change));
+
+                System.out.printf("🔄 App ID %d | %s | Old: %.2f → New: %.2f (Δ %.1f)%n",
+                        app.getId(),
+                        app.getName(),
+                        oldRating,
+                        newRating,
+                        change
+                );
+
+                app.setRating(newRating);
+                applicationRepository.save(app);
+            }
+
+            //applicationRepository.saveAll(apps);
+
+            System.out.println("✅ Daily rating update completed");
+            // Коммитим транзакцию
+            transactionManager.commit(status);
+        }catch (Exception e) {
+            // Откатываем транзакцию в случае ошибки
+            transactionManager.rollback(status);
+            throw new RuntimeException("Failed to update ratings: " + e.getMessage());
+        }
+    }
+
 
 
     // + создание разработчика
