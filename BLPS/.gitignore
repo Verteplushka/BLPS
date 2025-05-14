@@ -6,6 +6,7 @@
 /!BLPS/**/src/test/**/target/
 *.lck
 *.log
+target/
 
 # === STS (Spring Tool Suite) ===
 /BLPS/.apt_generated
