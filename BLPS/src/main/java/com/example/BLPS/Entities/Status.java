@@ -1,7 +1,9 @@
 package com.example.BLPS.Entities;
 
 public enum Status {
-    PENDING,
+    AUTO_MODERATION_FAILED,
+    AUTO_MODERATION,
+    ADMIN_MODERATION,
     APPROVED,
     REJECTED
 }

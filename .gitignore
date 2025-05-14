@@ -1,36 +1,40 @@
-HELP.md
-target/
-!.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
+# === BLPS-specific ignores ===
+/BLPS/HELP.md
+/BLPS/target/
+/BLPS/.mvn/wrapper/maven-wrapper.jar
+!/BLPS/**/src/main/**/target/
+/!BLPS/**/src/test/**/target/
 *.lck
 *.log
 
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
+# === STS (Spring Tool Suite) ===
+/BLPS/.apt_generated
+/BLPS/.classpath
+/BLPS/.factorypath
+/BLPS/.project
+/BLPS/.settings
+/BLPS/.springBeans
+/BLPS/.sts4-cache
 
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
-out/
+# === IntelliJ IDEA ===
+/BLPS/.idea
+/BLPS/*.iws
+/BLPS/*.iml
+/BLPS/*.ipr
+/BLPS/out/
 
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
+# === NetBeans ===
+/BLPS/nbproject/private/
+/BLPS/nbbuild/
+/BLPS/dist/
+/BLPS/nbdist/
+/BLPS/.nb-gradle/
+/BLPS/build/
+!/BLPS/**/src/main/**/build/
+/!BLPS/**/src/test/**/build/
 
-### VS Code ###
-.vscode/
+# === VS Code ===
+/BLPS/.vscode/
+
+# === consumer-service ===
+/consumer-service/.idea

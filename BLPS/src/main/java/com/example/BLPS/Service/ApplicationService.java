@@ -10,6 +10,7 @@ import com.example.BLPS.Mapper.ApplicationMapper;
 import com.example.BLPS.Repositories.ApplicationRepository;
 import com.example.BLPS.Utils.StringUtils;
 import com.example.BLPS.Utils.UserXmlReader;
+import com.example.BLPS.config.MqttMessageSender;
 import jakarta.annotation.PostConstruct;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,17 +33,20 @@ public class ApplicationService {
     private final TagService tagService;
     private final DeveloperService developerService;
     private final PlatformTransactionManager transactionManager;
+    private final MqttMessageSender mqttMessageSender;
     private final String xmlFilePath = "src/main/resources/users.xml";
+    private final String moderationQueueName = "moderation-queue";
 
     private Platform platform;
 
     @Autowired
-    public ApplicationService(ApplicationRepository applicationRepository, PlatformService platformService, TagService tagService, DeveloperService developerService, PlatformTransactionManager transactionManager) {
+    public ApplicationService(ApplicationRepository applicationRepository, PlatformService platformService, TagService tagService, DeveloperService developerService, PlatformTransactionManager transactionManager, MqttMessageSender mqttMessageSender) {
         this.applicationRepository = applicationRepository;
         this.platformService = platformService;
         this.tagService = tagService;
         this.developerService = developerService;
         this.transactionManager = transactionManager;
+        this.mqttMessageSender = mqttMessageSender;
     }
 
     @PostConstruct
@@ -91,7 +95,6 @@ public class ApplicationService {
 
     public List<CategoryDto> getApplicationsByCategories() {
         List<CategoryDto> categories = new ArrayList<>();
-        //todo на enum переписать
         categories.add(new CategoryDto("popular", getTop10Applications()));
         categories.add(new CategoryDto("recommended", getRecommendedApplications()));
         categories.addAll(getApplicationsByTags());
@@ -204,8 +207,10 @@ public class ApplicationService {
             List<Tag> tags = tagService.findAllById(request.getTagIds());
 
             Application application = ApplicationMapper.toEntity(request, developer, platforms, tags);
-            application.setStatus(Status.PENDING);
+            application.setStatus(Status.AUTO_MODERATION);
             Application saved = applicationRepository.save(application);
+
+            mqttMessageSender.sendMessage(moderationQueueName, saved.getId().toString());
 
             transactionManager.commit(status);
             return ApplicationMapper.toDtoDetailed(saved);
@@ -265,11 +270,13 @@ public class ApplicationService {
             app.setDescription(updatedData.getDescription());
             app.setPlatforms(platforms);
             app.setTags(tags);
-            app.setStatus(Status.PENDING);
+            app.setStatus(Status.AUTO_MODERATION);
 
             Application saved = applicationRepository.save(app);
-            transactionManager.commit(status);
 
+            mqttMessageSender.sendMessage(moderationQueueName, saved.getId().toString());
+
+            transactionManager.commit(status);
             return ApplicationMapper.toDtoDetailed(saved);
         } catch (Exception e) {
             transactionManager.rollback(status);
@@ -326,6 +333,8 @@ public class ApplicationService {
     // + создание разработчика
     // + разработчик как отдельная роль
     // + у developer будет user_id и все поля разработчика останутся в developer
-    // блокировка разработчика (и всех его приложений, чтобы они не отображались в селектах)
-    // таблица для модерации приложений (при обновлении приложения добавляется в таблицу для модерации) когда админ добавляет / обновляет приложение
+    // + блокировка разработчика (и всех его приложений, чтобы они не отображались в селектах)
+    // + модерация приложений когда админ добавляет / обновляет приложение
+
+    //
 }

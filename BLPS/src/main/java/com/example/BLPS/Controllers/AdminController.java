@@ -18,7 +18,7 @@ public class AdminController {
 
     @GetMapping("/pending")
     public ResponseEntity<List<ApplicationDtoDetailed>> getPendingApplications() {
-        List<ApplicationDtoDetailed> pendingApps = applicationService.getApplicationsByStatus(Status.PENDING);
+        List<ApplicationDtoDetailed> pendingApps = applicationService.getApplicationsByStatus(Status.ADMIN_MODERATION);
         return ResponseEntity.ok(pendingApps);
     }
 

@@ -5,3 +5,11 @@ application:
       expiration: 86400000 # a day
       refresh-token:
         expiration: 604800000 # 7 days
+
+spring:
+  activemq:
+    broker-url: tcp://localhost:16161
+    user: admin
+    password: admin
+  jms:
+    pub-sub-domain: false  # false = очередь, true = топик
