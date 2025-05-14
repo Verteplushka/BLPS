@@ -6,6 +6,7 @@ import com.example.BLPS.Service.DeveloperService;
 import com.example.BLPS.Service.PlatformService;
 import com.example.BLPS.Service.TagService;
 import com.example.BLPS.config.MqttMessageSender;
+import lombok.NoArgsConstructor;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
@@ -14,6 +15,7 @@ import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
 import com.example.BLPS.Repositories.ApplicationRepository;
 //import org.springframework.transaction.support.TransactionDefinition;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 
@@ -32,16 +34,18 @@ import org.quartz.JobExecutionException;
 import java.util.List;
 
 @Component
+@NoArgsConstructor(force = true)
+@Transactional
 public class UpdateRatingsJob implements Job {
 
 
     private final ApplicationRepository applicationRepository;
-    private final PlatformTransactionManager transactionManager;
+    //private final PlatformTransactionManager transactionManager;
     @Autowired
-    public UpdateRatingsJob(ApplicationRepository applicationRepository,PlatformTransactionManager transactionManager) {
+    public UpdateRatingsJob(ApplicationRepository applicationRepository) {
         this.applicationRepository = applicationRepository;
-        this.transactionManager = transactionManager;
-    }
+       // this.transactionManager = transactionManager;
+}
 //    @Autowired
 //    private  ApplicationRepository applicationRepository;
 //    @Autowired
@@ -50,8 +54,8 @@ public class UpdateRatingsJob implements Job {
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
         // Начинаем транзакцию
-        TransactionDefinition def = new DefaultTransactionDefinition();
-        TransactionStatus status = transactionManager.getTransaction(def);
+       // TransactionDefinition def = new DefaultTransactionDefinition();
+       // TransactionStatus status = transactionManager.getTransaction(def);
 
         try {
             System.out.println("⏰ [Scheduled Quartz Task] Updating app ratings at " + java.time.LocalDateTime.now());
@@ -92,16 +96,17 @@ public class UpdateRatingsJob implements Job {
 
                 app.setRating(newRating);
                 System.out.println("New updated rating: "+app.getRating());
+                System.out.println("New full app: "+app);
                 applicationRepository.save(app);
             }
 
             System.out.println("✅ Daily rating update completed");
 
             // Коммитим транзакцию
-            transactionManager.commit(status);
+           // transactionManager.commit(status);
         } catch (Exception e) {
             // Откатываем транзакцию в случае ошибки
-            transactionManager.rollback(status);
+           // transactionManager.rollback(status);
             throw new JobExecutionException("Failed to update ratings: " + e.getMessage(), e);
         }
     }

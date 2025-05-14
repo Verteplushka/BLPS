@@ -74,5 +74,10 @@ public class Application {
             inverseJoinColumns = @JoinColumn(name = "tag_id")
     )
     private List<Tag> tags;
+    @Override
+    public String toString() {
+        return "Application{id="+ id+ ", name='" + name + "', rating=" + rating + "}";
+    }
+
 }
 
