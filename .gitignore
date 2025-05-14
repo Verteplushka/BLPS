@@ -38,3 +38,4 @@
 
 # === consumer-service ===
 /consumer-service/.idea
+/consumer-service/target/
