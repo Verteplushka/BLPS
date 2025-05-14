@@ -34,7 +34,7 @@ public class Application {
 
     @Column(columnDefinition = "TEXT")
     private String description;
-
+    @Column(name = "rating")
     private Float rating;
     private Integer downloads;
 
