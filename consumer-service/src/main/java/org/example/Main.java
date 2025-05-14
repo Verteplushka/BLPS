@@ -1,7 +1,7 @@
 package org.example;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.eclipse.paho.client.mqttv3.*;
+import javax.jms.*;
+import org.apache.activemq.ActiveMQConnectionFactory;
 import org.example.Entity.Application;
 import org.example.Entity.Status;
 
@@ -9,41 +9,52 @@ import java.sql.*;
 
 public class Main {
 
-    static final String BROKER_URL = "tcp://localhost:1884";
-    static final String TOPIC = "moderation-queue";
+    static final String BROKER_URL = "tcp://localhost:16161";
+    static final String QUEUE_NAME = "queue.moderation-queue";
 
     static final String JDBC_URL = "jdbc:postgresql://localhost:5432/studs";
     static final String JDBC_USER = "admin";
     static final String JDBC_PASS = "admin";
 
     public static void main(String[] args) throws Exception {
-        MqttClient client = new MqttClient(BROKER_URL, MqttClient.generateClientId());
-        client.connect();
+        ConnectionFactory connectionFactory = new ActiveMQConnectionFactory(BROKER_URL);
+        javax.jms.Connection connection = connectionFactory.createConnection();
+        connection.start();
 
-        System.out.println("🎧 Subscribed to MQTT topic: " + TOPIC);
+        Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+        Destination queue = session.createQueue(QUEUE_NAME);
 
-        client.subscribe(TOPIC, (topic, mqttMessage) -> {
-            try {
-                Integer appId = Integer.parseInt(new String(mqttMessage.getPayload()));
+        MessageConsumer consumer = session.createConsumer(queue);
 
-                Application app = getAppFromDatabase(appId);
+        consumer.setMessageListener(message -> {
+            if (message instanceof BytesMessage bytesMessage) {
+                try {
+                    byte[] data = new byte[(int) bytesMessage.getBodyLength()];
+                    bytesMessage.readBytes(data);
+                    String text = new String(data);
 
-                if (app != null) {
-                    System.out.println("📥 Got app for moderation: " + app.getName());
+                    Integer appId = Integer.parseInt(text);
 
-                    boolean hasBadWords = containsBadWords(app.getName()) || containsBadWords(app.getDescription());
+                    Application app = getAppFromDatabase(appId);
 
-                    updateAppStatus(app.getId(), hasBadWords ? Status.AUTO_MODERATION_FAILED : Status.ADMIN_MODERATION);
+                    if (app != null) {
+                        System.out.println("📥 Got app: " + app.getName());
 
-                    System.out.println(hasBadWords ? "❌ Bad words detected" : "✅ App is clean");
-                } else {
-                    System.out.println("❌ App not found in DB");
+                        boolean hasBadWords = containsBadWords(app.getName()) || containsBadWords(app.getDescription());
+
+                        updateAppStatus(app.getId(), hasBadWords ? Status.AUTO_MODERATION_FAILED : Status.ADMIN_MODERATION);
+
+                        System.out.println(hasBadWords ? "❌ Bad words detected" : "✅ App is clean");
+                    } else {
+                        System.out.println("❌ App not found in DB");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
-
-            } catch (Exception e) {
-                e.printStackTrace();
             }
         });
+
+        System.out.println("✅ JMS listener started. Waiting for messages...");
     }
 
     private static boolean containsBadWords(String text) {
@@ -53,7 +64,7 @@ public class Main {
     }
 
     private static Application getAppFromDatabase(Integer appId) {
-        try (Connection conn = DriverManager.getConnection(JDBC_URL, JDBC_USER, JDBC_PASS)) {
+        try (java.sql.Connection conn = DriverManager.getConnection(JDBC_URL, JDBC_USER, JDBC_PASS)) {
             String sql = "SELECT * FROM applications WHERE id = ?";
             PreparedStatement ps = conn.prepareStatement(sql);
             ps.setInt(1, appId);
@@ -74,7 +85,7 @@ public class Main {
     }
 
     private static void updateAppStatus(Integer appId, Status status) {
-        try (Connection conn = DriverManager.getConnection(JDBC_URL, JDBC_USER, JDBC_PASS)) {
+        try (java.sql.Connection conn = DriverManager.getConnection(JDBC_URL, JDBC_USER, JDBC_PASS)) {
             String sql = "UPDATE applications SET moderation_status = ? WHERE id = ?";
             PreparedStatement ps = conn.prepareStatement(sql);
             ps.setString(1, status.name());

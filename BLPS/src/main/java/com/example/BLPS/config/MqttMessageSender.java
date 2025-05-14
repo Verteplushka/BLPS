@@ -22,6 +22,6 @@ public class MqttMessageSender {
         }
 
         MqttMessage mqttMessage = new MqttMessage(message.getBytes());
-        mqttClient.publish(topic, mqttMessage);
+        mqttClient.publish("moderation-queue", mqttMessage);
     }
 }
