@@ -61,6 +61,9 @@ public class Main {
         if (text == null) return false;
         String lower = text.toLowerCase();
         return lower.contains("shit") || lower.contains("fuck") || lower.contains("nigger");
+        // реализовать через список плохих слов
+        // jira или любой task-tracker
+        // задача попадает в task-tracker и висит там до тех пор пока админ не закончит модерацию, чтобы там изменялись статусы задачи
     }
 
     private static Application getAppFromDatabase(Integer appId) {

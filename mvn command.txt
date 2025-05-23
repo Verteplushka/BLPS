@@ -1,0 +1,2 @@
+mvn install:install-file -Dfile=../jira-ra/target/jira-ra-1.0-SNAPSHOT.jar -DgroupId=ru.myjira.jca -DartifactId=jira-jca-adapter -Dversion=1.0.0 \
+  -Dpackaging=jar
