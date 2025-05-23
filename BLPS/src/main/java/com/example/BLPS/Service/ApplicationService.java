@@ -10,6 +10,7 @@ import com.example.BLPS.Mapper.ApplicationMapper;
 import com.example.BLPS.Repositories.ApplicationRepository;
 import com.example.BLPS.Utils.StringUtils;
 import com.example.BLPS.Utils.UserXmlReader;
+import com.example.BLPS.config.JiraAdapterClient;
 import com.example.BLPS.config.MqttMessageSender;
 import jakarta.annotation.PostConstruct;
 import jakarta.persistence.EntityNotFoundException;
@@ -39,18 +40,19 @@ public class ApplicationService {
     private final MqttMessageSender mqttMessageSender;
     private final String xmlFilePath = "src/main/resources/users.xml";
     private final String moderationQueueName = "moderation-queue";
-    private final Random random = new Random(); //Для рандомного изменения рейтинга раз в день
+    private final JiraAdapterClient jiraAdapterClient;
 
     private Platform platform;
 
     @Autowired
-    public ApplicationService(ApplicationRepository applicationRepository, PlatformService platformService, TagService tagService, DeveloperService developerService, PlatformTransactionManager transactionManager, MqttMessageSender mqttMessageSender) {
+    public ApplicationService(ApplicationRepository applicationRepository, PlatformService platformService, TagService tagService, DeveloperService developerService, PlatformTransactionManager transactionManager, MqttMessageSender mqttMessageSender, JiraAdapterClient jiraAdapterClient) {
         this.applicationRepository = applicationRepository;
         this.platformService = platformService;
         this.tagService = tagService;
         this.developerService = developerService;
         this.transactionManager = transactionManager;
         this.mqttMessageSender = mqttMessageSender;
+        this.jiraAdapterClient = jiraAdapterClient;
     }
 
     @PostConstruct
@@ -214,13 +216,15 @@ public class ApplicationService {
             application.setStatus(Status.AUTO_MODERATION);
             Application saved = applicationRepository.save(application);
 
+            jiraAdapterClient.createModerationTask(saved.getId(), saved.getName(), saved.getDeveloper().getName());
+
             mqttMessageSender.sendMessage(moderationQueueName, saved.getId().toString());
 
             transactionManager.commit(status);
             return ApplicationMapper.toDtoDetailed(saved);
         } catch (Exception ex) {
             transactionManager.rollback(status);
-            ex.printStackTrace(); // ← минимум, чтобы увидеть, в чём ошибка
+            ex.printStackTrace();
             throw new CreateAppFailedException("Transaction failed: " + ex.getMessage());
         }
     }
@@ -279,6 +283,8 @@ public class ApplicationService {
 
             Application saved = applicationRepository.save(app);
 
+            jiraAdapterClient.createModerationTask(saved.getId(), saved.getName(), saved.getDeveloper().getName());
+
             mqttMessageSender.sendMessage(moderationQueueName, saved.getId().toString());
 
             transactionManager.commit(status);
@@ -305,6 +311,8 @@ public class ApplicationService {
                     .orElseThrow(() -> new EntityNotFoundException("App does not exist"));
             app.setStatus(newStatus);
             applicationRepository.save(app);
+
+            jiraAdapterClient.completeTaskByAppId(app.getId());
 
             transactionManager.commit(transaction);
         } catch (Exception e) {

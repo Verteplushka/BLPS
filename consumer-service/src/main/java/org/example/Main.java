@@ -6,6 +6,8 @@ import org.example.Entity.Application;
 import org.example.Entity.Status;
 
 import java.sql.*;
+import java.util.Arrays;
+import java.util.List;
 
 public class Main {
 
@@ -15,6 +17,11 @@ public class Main {
     static final String JDBC_URL = "jdbc:postgresql://localhost:5432/studs";
     static final String JDBC_USER = "admin";
     static final String JDBC_PASS = "admin";
+
+    private static final List<String> BAD_WORDS = Arrays.asList(
+            "shit", "fuck", "nigger", "asshole", "bitch", "cunt",
+            "dick", "piss", "cock", "pussy", "faggot", "whore"
+    );
 
     public static void main(String[] args) throws Exception {
         ConnectionFactory connectionFactory = new ActiveMQConnectionFactory(BROKER_URL);
@@ -57,14 +64,18 @@ public class Main {
         System.out.println("✅ JMS listener started. Waiting for messages...");
     }
 
-    private static boolean containsBadWords(String text) {
-        if (text == null) return false;
-        String lower = text.toLowerCase();
-        return lower.contains("shit") || lower.contains("fuck") || lower.contains("nigger");
-        // реализовать через список плохих слов
-        // jira или любой task-tracker
-        // задача попадает в task-tracker и висит там до тех пор пока админ не закончит модерацию, чтобы там изменялись статусы задачи
+    public static boolean containsBadWords(String text) {
+        if (text == null || text.isEmpty()) {
+            return false;
+        }
+
+        String lowerText = text.toLowerCase();
+        return BAD_WORDS.stream().anyMatch(lowerText::contains);
     }
+        // реализовать через список плохих слов +
+        // jira или любой task-tracker +
+        // задача попадает в task-tracker и висит там до тех пор пока админ не закончит модерацию, чтобы там изменялись статусы задачи +
+
 
     private static Application getAppFromDatabase(Integer appId) {
         try (java.sql.Connection conn = DriverManager.getConnection(JDBC_URL, JDBC_USER, JDBC_PASS)) {

@@ -35,6 +35,12 @@ public class JiraAdapterClient {
         }
     }
 
+    public void completeTaskByAppId(int appId) throws ResourceException {
+        try (JiraConnection conn = connectionFactory.getConnection()) {
+            conn.completeTask(appId);
+        }
+    }
+
     static class DummyConnectionManager implements ConnectionManager {
         @Override
         public Object allocateConnection(ManagedConnectionFactory mcf, ConnectionRequestInfo cxRequestInfo) throws ResourceException {
