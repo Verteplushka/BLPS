@@ -2,25 +2,31 @@ package com.example.BLPS.Quartz;
 
 import com.example.BLPS.Entities.Application;
 import com.example.BLPS.Repositories.ApplicationRepository;
-import org.quartz.JobExecutionException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+
 @Component
 public class RatingUpdater {
-    private final ApplicationRepository applicationRepository;
+
     //private final PlatformTransactionManager transactionManager;
+
+    private final JdbcTemplate jdbcTemplate;
+    private final ApplicationRepository applicationRepository;
     @Autowired
-    public RatingUpdater(ApplicationRepository applicationRepository) {
+    public RatingUpdater(JdbcTemplate jdbcTemplate, ApplicationRepository applicationRepository) {
+        this.jdbcTemplate = jdbcTemplate;
         this.applicationRepository = applicationRepository;
     }
     @Transactional
     public void updateRatings() {
         try {
             System.out.println("⏰ [Scheduled Quartz Task] Updating app ratings at " + java.time.LocalDateTime.now());
-            List<Application> apps = applicationRepository.findAll();
+            List<Map<String, Object>> apps = jdbcTemplate.queryForList("SELECT id, rating FROM applications");
 
             // Возможные изменения и веса (чем ближе к 0 — тем выше шанс)
             float[] changes = {-0.5f, -0.4f, -0.3f, -0.2f, -0.1f, 0f, 0.1f, 0.2f, 0.3f, 0.4f, 0.5f};
@@ -29,8 +35,9 @@ public class RatingUpdater {
             double totalWeight = 0;
             for (double w : weights) totalWeight += w;
 
-            for (Application app : apps) {
-                Float oldRating = app.getRating() != null ? app.getRating() : 0.0f;
+            for (Map<String, Object> app : apps) {
+                Long id = ((Number) app.get("id")).longValue();
+                Float oldRating = app.get("rating") != null ? ((Number) app.get("rating")).floatValue() : 0.0f;
 
                 // Выбираем случайное изменение с учётом веса
                 double rand = Math.random() * totalWeight;
@@ -47,18 +54,19 @@ public class RatingUpdater {
 
                 Float newRating = Math.max(0.0f, Math.min(5.0f, oldRating + change));
 
-                System.out.printf("🔄 App ID %d | %s | Old: %.2f → New: %.2f (Δ %.1f)%n",
-                        app.getId(),
-                        app.getName(),
+                System.out.printf("🔄 App ID %d | Old: %.2f → New: %.2f (Δ %.1f)%n",
+                        ((Number) app.get("id")).longValue(),
                         oldRating,
                         newRating,
                         change
                 );
 
-                app.setRating(newRating);
+
+                // app.setRating(newRating);
                 // System.out.println("New updated rating: "+app.getRating());
                 //System.out.println("New full app: "+app);
-                applicationRepository.save(app);
+               // applicationRepository.save(app);
+                jdbcTemplate.update("UPDATE applications SET rating = ? WHERE id = ?", newRating, id);
             }
 
             System.out.println("✅ Daily rating update completed");
