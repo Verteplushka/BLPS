@@ -9,13 +9,15 @@ import java.io.PrintWriter;
 
 public class JiraManagedConnection implements ManagedConnection {
     private final String jiraBaseUrl;
-    private final String authToken;
+    private String username;
+    private String password;
     private JiraConnectionImpl connectionImpl;
 
-    public JiraManagedConnection(String jiraBaseUrl, String authToken) {
+    public JiraManagedConnection(String jiraBaseUrl, String username, String password) {
         this.jiraBaseUrl = jiraBaseUrl;
-        this.authToken = authToken;
-        this.connectionImpl = new JiraConnectionImpl(jiraBaseUrl, authToken);
+        this.username = username;
+        this.password = password;
+        this.connectionImpl = new JiraConnectionImpl(jiraBaseUrl, username, password);
     }
 
     @Override

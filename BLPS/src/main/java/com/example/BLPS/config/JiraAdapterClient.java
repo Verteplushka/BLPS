@@ -18,7 +18,7 @@ public class JiraAdapterClient {
     public JiraAdapterClient() throws ResourceException {
         JiraManagedConnectionFactory mcf = new JiraManagedConnectionFactory();
         mcf.setJiraBaseUrl("http://localhost:8090");
-        mcf.setAuthToken("Bearer ATATT3xFfGF0rTZ1PQBTnOwwEyiLVZDM_2IT6hHQD731TyM-KeOOJ6AZi8WZfqIvID9oUHh3WWBjhOs0XC9xEDCQVPHlEyhiUvPmaE9Xr7db5ye46wf4A6dd7p_T_U1Ef_rIhE-GxCEsEehbAxhqgXc2CE0RLbns1ZpuEBiED_zb_fyfsIAkPLg=3E5D3FDA");
+        mcf.setUserPassword("admin", "admin");
 
         this.connectionFactory = new JiraConnectionFactory(mcf, new DummyConnectionManager());
     }

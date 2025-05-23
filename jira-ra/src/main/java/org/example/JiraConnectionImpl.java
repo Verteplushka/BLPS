@@ -8,36 +8,46 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 
 public class JiraConnectionImpl implements JiraConnection {
     private final String jiraBaseUrl;
-    private final String authToken;
+    private String username;
+    private String password;
 
-    public JiraConnectionImpl(String jiraBaseUrl, String authToken) {
+
+    public JiraConnectionImpl(String jiraBaseUrl, String username, String password) {
         this.jiraBaseUrl = jiraBaseUrl;
-        this.authToken = authToken;
+        this.username = username;
+        this.password = password;
     }
 
     @Override
     public String createModerationTask(int appId, String appName, String developer) throws ResourceException {
         try {
             String json = """
-            {
-              "fields": {
-                "project": {
-                  "key": "MOD"
-                },
-                "issuetype": {
-                  "name": "Task"
-                }
-              }
-            }
-            """.formatted(appName, appId, developer);
+                    {
+                      "fields": {
+                        "project": {
+                          "key": "MOD"
+                        },
+                        "summary": "Краткое описание задачи",
+                        "issuetype": {
+                          "name": "Task"
+                        }
+                      }
+                    }
+                    """.formatted(appName, appId, developer);
 
             URL url = new URL(jiraBaseUrl + "/rest/api/2/issue");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
-            conn.setRequestProperty("Authorization", authToken);
+
+            String auth = username + ":" + password;
+            String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));
+            conn.setRequestProperty("Authorization", "Basic " + encodedAuth);
+
             conn.setRequestProperty("Content-Type", "application/json");
             conn.setDoOutput(true);
 
@@ -92,9 +102,14 @@ public class JiraConnectionImpl implements JiraConnection {
             URL url = new URL(jiraBaseUrl + "/rest/api/2/issue/" + taskId);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
-            conn.setRequestProperty("Authorization", authToken);
-            conn.setRequestProperty("Content-Type", "application/json");
 
+
+            String auth = username + ":" + password;
+            String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));
+            conn.setRequestProperty("Authorization", "Basic " + encodedAuth);
+
+
+            conn.setRequestProperty("Content-Type", "application/json");
             int responseCode = conn.getResponseCode();
             if (responseCode != 200) {
                 throw new ResourceException("Jira вернула код: " + responseCode);

@@ -12,14 +12,16 @@ import java.util.Set;
 
 public class JiraManagedConnectionFactory implements ManagedConnectionFactory {
     private String jiraBaseUrl;
-    private String authToken;
+    private String username;
+    private String password;
 
     public void setJiraBaseUrl(String jiraBaseUrl) {
         this.jiraBaseUrl = jiraBaseUrl;
     }
 
-    public void setAuthToken(String authToken) {
-        this.authToken = authToken;
+    public void setUserPassword(String username, String password) {
+        this.username = username;
+        this.password = password;
     }
 
     @Override
@@ -34,7 +36,8 @@ public class JiraManagedConnectionFactory implements ManagedConnectionFactory {
 
     @Override
     public ManagedConnection createManagedConnection(javax.security.auth.Subject subject, ConnectionRequestInfo cxRequestInfo) throws ResourceException {
-        return new JiraManagedConnection(jiraBaseUrl, authToken);
+//        return new JiraManagedConnection(jiraBaseUrl, authToken);
+        return new JiraManagedConnection(jiraBaseUrl, username, password);
     }
 
     @Override
