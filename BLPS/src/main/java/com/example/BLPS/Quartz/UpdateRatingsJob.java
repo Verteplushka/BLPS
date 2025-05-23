@@ -22,71 +22,10 @@ import org.springframework.transaction.support.DefaultTransactionDefinition;
 @Transactional
 public class UpdateRatingsJob implements Job {
 
-
-    private final ApplicationRepository applicationRepository;
     @Autowired
-    public UpdateRatingsJob(ApplicationRepository applicationRepository) {
-        this.applicationRepository = applicationRepository;
-       // this.transactionManager = transactionManager;
-}
-
+    private RatingUpdater ratingUpdater;
     @Override
-    public void execute(JobExecutionContext context) throws JobExecutionException {
-        // Начинаем транзакцию
-
-       // TransactionDefinition def = new DefaultTransactionDefinition();
-       // TransactionStatus status = transactionManager.getTransaction(def);
-
-        try {
-            System.out.println("⏰ [Scheduled Quartz Task] Updating app ratings at " + java.time.LocalDateTime.now());
-            List<Application> apps = applicationRepository.findAll();
-
-            // Возможные изменения и веса (чем ближе к 0 — тем выше шанс)
-            float[] changes = {-0.5f, -0.4f, -0.3f, -0.2f, -0.1f, 0f, 0.1f, 0.2f, 0.3f, 0.4f, 0.5f};
-            double[] weights = {1, 2, 4, 6, 8, 10, 8, 6, 4, 2, 1}; // сумма: 52
-
-            double totalWeight = 0;
-            for (double w : weights) totalWeight += w;
-
-            for (Application app : apps) {
-                Float oldRating = app.getRating() != null ? app.getRating() : 0.0f;
-
-                // Выбираем случайное изменение с учётом веса
-                double rand = Math.random() * totalWeight;
-                double cumulative = 0;
-                Float change = 0f;
-
-                for (int i = 0; i < changes.length; i++) {
-                    cumulative += weights[i];
-                    if (rand <= cumulative) {
-                        change = changes[i];
-                        break;
-                    }
-                }
-
-                Float newRating = Math.max(0.0f, Math.min(5.0f, oldRating + change));
-
-                System.out.printf("🔄 App ID %d | %s | Old: %.2f → New: %.2f (Δ %.1f)%n",
-                        app.getId(),
-                        app.getName(),
-                        oldRating,
-                        newRating,
-                        change
-                );
-
-                app.setRating(newRating);
-
-                System.out.println("New full app: "+app);
-                applicationRepository.save(app);
-            }
-
-            System.out.println("✅ Daily rating update completed");
-
-           // transactionManager.commit(status);
-        } catch (Exception e) {
-            // Откатываем транзакцию в случае ошибки
-           // transactionManager.rollback(status);
-            throw new JobExecutionException("Failed to update ratings: " + e.getMessage(), e);
-        }
+    public void execute(JobExecutionContext context) {
+        ratingUpdater.updateRatings();
     }
 }
