@@ -1,5 +1,6 @@
 package com.example.BLPS.config;
 
+import com.example.BLPS.Quartz.AutowiringSpringBeanJobFactory;
 import com.example.BLPS.Quartz.UpdateRatingsJob;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.*;
@@ -11,6 +12,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.quartz.SchedulerFactoryBean;
 import org.springframework.scheduling.quartz.SpringBeanJobFactory;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.quartz.SchedulerFactoryBean;
+import org.quartz.spi.JobFactory;
 
 @Configuration
 public class QuartzConfig {
@@ -41,16 +46,23 @@ public class QuartzConfig {
     }
 
     @Bean
-    public Scheduler scheduler() throws SchedulerException {
-        Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
+    public Scheduler scheduler(SchedulerFactoryBean factory) throws SchedulerException {
+        Scheduler scheduler = factory.getScheduler();
         scheduler.scheduleJob(updateRatingsJobDetail(), updateRatingsTrigger());
         scheduler.start();
         return scheduler;
     }
     @Bean
-    public SpringBeanJobFactory springBeanJobFactory() {
-        SpringBeanJobFactory factory = new SpringBeanJobFactory();
-        factory.setApplicationContext(applicationContext);
+    public JobFactory jobFactory(ApplicationContext applicationContext) {
+        AutowiringSpringBeanJobFactory jobFactory = new AutowiringSpringBeanJobFactory();
+        jobFactory.setApplicationContext(applicationContext);
+        return jobFactory;
+    }
+
+    @Bean
+    public SchedulerFactoryBean schedulerFactoryBean(JobFactory jobFactory) {
+        SchedulerFactoryBean factory = new SchedulerFactoryBean();
+        factory.setJobFactory(jobFactory);
         return factory;
     }
 
