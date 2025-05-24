@@ -2,8 +2,10 @@ package com.example.BLPS.Controllers;
 
 import com.example.BLPS.Dto.ApplicationDtoDetailed;
 import com.example.BLPS.Entities.Status;
+import com.example.BLPS.Exceptions.ApplicationNotPendingModerationException;
 import com.example.BLPS.Service.ApplicationService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -40,4 +42,9 @@ public class AdminController {
         return ResponseEntity.ok().build();
     }
 
+    @ExceptionHandler(ApplicationNotPendingModerationException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public String handleNotPending(ApplicationNotPendingModerationException e) {
+        return e.getMessage();
+    }
 }

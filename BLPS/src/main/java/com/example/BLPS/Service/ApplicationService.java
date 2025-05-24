@@ -2,10 +2,7 @@ package com.example.BLPS.Service;
 
 import com.example.BLPS.Dto.*;
 import com.example.BLPS.Entities.*;
-import com.example.BLPS.Exceptions.AppNotFoundException;
-import com.example.BLPS.Exceptions.AppsNotFoundException;
-import com.example.BLPS.Exceptions.CreateAppFailedException;
-import com.example.BLPS.Exceptions.PlatformNotFoundException;
+import com.example.BLPS.Exceptions.*;
 import com.example.BLPS.Mapper.ApplicationMapper;
 import com.example.BLPS.Repositories.ApplicationRepository;
 import com.example.BLPS.Utils.StringUtils;
@@ -309,6 +306,11 @@ public class ApplicationService {
         try {
             Application app = applicationRepository.findById(applicationId)
                     .orElseThrow(() -> new EntityNotFoundException("App does not exist"));
+
+            if (app.getStatus() != Status.ADMIN_MODERATION) {
+                throw new ApplicationNotPendingModerationException(applicationId);
+            }
+
             app.setStatus(newStatus);
             applicationRepository.save(app);
 
@@ -320,6 +322,7 @@ public class ApplicationService {
             throw new RuntimeException("Status update error: " + e.getMessage(), e);
         }
     }
+
 
 
     public void rejectAllApplicationsByDeveloper(Integer developerId) {
@@ -341,6 +344,4 @@ public class ApplicationService {
             throw new RuntimeException("Couldn't ban developer: " + ex.getMessage(), ex);
         }
     }
-
-    //
 }
