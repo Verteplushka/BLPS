@@ -4,6 +4,7 @@ import com.example.BLPS.Dto.ApplicationDtoDetailed;
 import com.example.BLPS.Entities.Status;
 import com.example.BLPS.Exceptions.ApplicationNotPendingModerationException;
 import com.example.BLPS.Service.ApplicationService;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -45,6 +46,12 @@ public class AdminController {
     @ExceptionHandler(ApplicationNotPendingModerationException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public String handleNotPending(ApplicationNotPendingModerationException e) {
+        return e.getMessage();
+    }
+
+    @ExceptionHandler(EntityNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public String handleNotFound(EntityNotFoundException e) {
         return e.getMessage();
     }
 }
