@@ -39,3 +39,7 @@
 # === consumer-service ===
 /consumer-service/.idea
 /consumer-service/target/
+
+# === general ===
+camunda-bpm-wildfly-7.24.0-alpha1.zip
+camunda-bpm-wildfly-7.24.0-alpha1/

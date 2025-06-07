@@ -1,57 +1,38 @@
 package com.example.BLPS.Controllers;
 
-import com.example.BLPS.Dto.ApplicationDtoDetailed;
-import com.example.BLPS.Entities.Status;
-import com.example.BLPS.Exceptions.ApplicationNotPendingModerationException;
-import com.example.BLPS.Service.ApplicationService;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
+import org.camunda.bpm.engine.RuntimeService;
+import org.camunda.bpm.engine.TaskService;
+import org.camunda.bpm.engine.task.Task;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
 public class AdminController {
 
-    private final ApplicationService applicationService;
+    private final RuntimeService runtimeService;
+    private final TaskService taskService;
 
-    @GetMapping("/pending")
-    public ResponseEntity<List<ApplicationDtoDetailed>> getPendingApplications() {
-        List<ApplicationDtoDetailed> pendingApps = applicationService.getApplicationsByStatus(Status.ADMIN_MODERATION);
-        return ResponseEntity.ok(pendingApps);
-    }
-
-    @PostMapping("/approve/{id}")
-    public ResponseEntity<Void> approveApplication(@PathVariable Long id) {
-        applicationService.updateModerationStatus(id, Status.APPROVED);
+    // Стартуем процесс модерирования вручную (например, по кнопке в UI)
+    @PostMapping("/start-moderation")
+    public ResponseEntity<Void> startModerationProcess(@RequestParam Long applicationId,
+                                                       @RequestParam Integer developerId) {
+        runtimeService.startProcessInstanceByKey("moderationProcess", Map.of(
+                "applicationId", applicationId,
+                "developerId", developerId
+        ));
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/reject/{id}")
-    public ResponseEntity<Void> rejectApplication(@PathVariable Long id) {
-        applicationService.updateModerationStatus(id, Status.REJECTED);
+    // Выполняем задачу администратора — ручной выбор действия (approve/reject/ban)
+    @PostMapping("/complete-review/{taskId}")
+    public ResponseEntity<Void> completeReviewTask(@PathVariable String taskId,
+                                                   @RequestParam String action) {
+        taskService.complete(taskId, Map.of("adminAction", action));
         return ResponseEntity.ok().build();
-    }
-
-    @PostMapping("/ban/{developerId}")
-    public ResponseEntity<Void> banDeveloper(@PathVariable Integer developerId) {
-        applicationService.rejectAllApplicationsByDeveloper(developerId);
-        return ResponseEntity.ok().build();
-    }
-
-    @ExceptionHandler(ApplicationNotPendingModerationException.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public String handleNotPending(ApplicationNotPendingModerationException e) {
-        return e.getMessage();
-    }
-
-    @ExceptionHandler(EntityNotFoundException.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public String handleNotFound(EntityNotFoundException e) {
-        return e.getMessage();
     }
 }

@@ -13,3 +13,8 @@ spring:
     password: admin
   jms:
     pub-sub-domain: false  # false = очередь, true = топик
+
+server:
+  port: 8085
+  servlet:
+    context-path: /camunda  # если хотите /camunda/app/tasklist
