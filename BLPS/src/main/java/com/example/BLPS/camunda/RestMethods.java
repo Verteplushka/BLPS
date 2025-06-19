@@ -23,12 +23,12 @@ public class RestMethods {
     private final String CAMUNDA_BASE_URL = "http://localhost:8085/engine-rest";
     private final String PROCESS_DEFINITION_KEY = "admin_process";
 
-    public String startProcess(Long appId, String action) {
-        Map<String, Object> variables = Map.of(
-                "applicationId", appId.toString(),
-                "action", action
-        );
-        return startProcessWithVariables(variables);
+    public String startProcess(String action, Map<String, Object> additionalVariables) {
+        // Объединяем обязательные переменные и дополнительные
+        Map<String, Object> mergedVars = new HashMap<>(additionalVariables);
+        mergedVars.put("action", action);
+
+        return startProcessWithVariables(mergedVars);
     }
 
     public String startProcessWithVariables(Map<String, Object> variables) {
@@ -77,12 +77,12 @@ public class RestMethods {
         });
     }
 
-    public Map<String, Object> startProcessAndWaitForResult(Long appId, String action) {
+    public Map<String, Object> startProcessAndWaitForResult(Map<String, Object> inputVariables, String action) {
         Map<String, Object> result = new HashMap<>();
 
         try {
             // 1. Стартуем процесс
-            String processInstanceId = startProcess(appId, action);
+            String processInstanceId = startProcess(action, inputVariables);
             result.put("processInstanceId", processInstanceId);
 
             int retries = 30;

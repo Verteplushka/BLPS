@@ -38,7 +38,7 @@ public class AdminController {
 
     @PostMapping("/approve/{id}")
     public ResponseEntity<Map<String, Object>> approveApplication(@PathVariable Long id) {
-        Map<String, Object> result = restMethods.startProcessAndWaitForResult(id, "approve");
+        Map<String, Object> result = restMethods.startProcessAndWaitForResult(Map.of("applicationId", id), "approve");
 
         String status = (String) result.getOrDefault("status", "UNKNOWN");
 
