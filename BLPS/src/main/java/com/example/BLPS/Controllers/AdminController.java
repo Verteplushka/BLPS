@@ -69,28 +69,65 @@ public class AdminController {
 
 
     @PostMapping("/reject/{id}")
-    public ResponseEntity<Void> rejectApplication(@PathVariable Long id) {
-        Map<String, Object> requestBody = Map.of(
-                "variables", Map.of(
-                        "applicationId", Map.of("value", id),
-                        "action", Map.of("value", "reject")
-                )
-        );
-        restTemplate.postForEntity(CAMUNDA_URL, requestBody, String.class);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<Map<String, Object>> rejectApplication(@PathVariable Long id) {
+        Map<String, Object> result = restMethods.startProcessAndWaitForResult(Map.of("applicationId", id), "reject");
+
+        String status = (String) result.getOrDefault("status", "UNKNOWN");
+
+        if ("FAILED".equalsIgnoreCase(status)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of(
+                            "status", status,
+                            "error", result.getOrDefault("error", "Unknown error"),
+                            "processInstanceId", result.get("processInstanceId")
+                    ));
+        }
+
+        if ("TIMEOUT".equalsIgnoreCase(status)) {
+            return ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT)
+                    .body(Map.of(
+                            "status", "TIMEOUT",
+                            "error", result.get("error"),
+                            "processInstanceId", result.get("processInstanceId")
+                    ));
+        }
+
+        return ResponseEntity.ok(Map.of(
+                "status", "REJECTED",
+                "message", result.getOrDefault("rejectedMessage", "Application rejected"),
+                "processInstanceId", result.get("processInstanceId")
+        ));
     }
 
     @PostMapping("/ban/{developerId}")
-    public ResponseEntity<Void> banDeveloper(@PathVariable Integer developerId) {
-        Map<String, Object> requestBody = Map.of(
-                "variables", Map.of(
-                        "developerId", Map.of("value", developerId),
-                        "applicationId", Map.of("value", -1), // фиктивное значение, если требуется
-                        "action", Map.of("value", "ban")
-                )
-        );
-        restTemplate.postForEntity(CAMUNDA_URL, requestBody, String.class);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<Map<String, Object>> banDeveloper(@PathVariable Integer developerId) {
+        Map<String, Object> result = restMethods.startProcessAndWaitForResult(Map.of("developerId", developerId), "ban");
+
+        String status = (String) result.getOrDefault("status", "UNKNOWN");
+
+        if ("FAILED".equalsIgnoreCase(status)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of(
+                            "status", status,
+                            "error", result.getOrDefault("error", "Unknown error"),
+                            "processInstanceId", result.get("processInstanceId")
+                    ));
+        }
+
+        if ("TIMEOUT".equalsIgnoreCase(status)) {
+            return ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT)
+                    .body(Map.of(
+                            "status", "TIMEOUT",
+                            "error", result.get("error"),
+                            "processInstanceId", result.get("processInstanceId")
+                    ));
+        }
+
+        return ResponseEntity.ok(Map.of(
+                "status", "BAN",
+                "message", result.getOrDefault("banMessage", "Developer successfully banned"),
+                "processInstanceId", result.get("processInstanceId")
+        ));
     }
 
     @ExceptionHandler(ApplicationNotPendingModerationException.class)
