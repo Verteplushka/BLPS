@@ -1,9 +1,6 @@
 package com.example.BLPS.Controllers;
 
-import com.example.BLPS.Dto.ApplicationDtoDetailed;
-import com.example.BLPS.Dto.CategoryDto;
-import com.example.BLPS.Dto.DeveloperDto;
-import com.example.BLPS.Dto.NotFoundDto;
+import com.example.BLPS.Dto.*;
 import com.example.BLPS.Exceptions.AppNotFoundException;
 import com.example.BLPS.Exceptions.AppsNotFoundException;
 import com.example.BLPS.Exceptions.PlatformNotFoundException;
@@ -14,7 +11,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/applications")
@@ -66,5 +65,10 @@ public class ApplicationController {
     @GetMapping("/getDevs")
     public ResponseEntity<List<DeveloperDto>> getAllDevelopers() {
         return ResponseEntity.ok(developerService.getAllDevelopers());
+    }
+
+    @GetMapping("/applications")
+    public List<ApplicationDto> getApplications() {
+        return new ArrayList<>(applicationService.getAllApplications());
     }
 }

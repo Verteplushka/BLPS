@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.35.0">
+  <bpmn:process id="application_catalog_process" isExecutable="true" camunda:historyTimeToLive="180">
+    <bpmn:startEvent id="StartEvent_1" />
+    <bpmn:serviceTask id="LoadAppsTask" name="User opens apps page" camunda:type="external" camunda:topic="load_applications" />
+    <bpmn:userTask id="DisplayAppsTask" name="Application Catalog">
+  <bpmn:extensionElements>
+    <camunda:formData>
+      <camunda:formField id="app_list" 
+                        label="Applications" 
+                        type="string" 
+                        defaultValue="Loading applications...">
+      </camunda:formField>
+    </camunda:formData>
+    <camunda:formScript>
+      <![CDATA[
+        (function() {
+          // Контейнер для таблицы
+          const container = document.createElement('div');
+          container.innerHTML = `
+            <style>
+              .app-table {
+                width: 100%;
+                border-collapse: collapse;
+              }
+              .app-table th, .app-table td {
+                padding: 8px;
+                border: 1px solid #ddd;
+                text-align: left;
+              }
+            </style>
+            <table class="app-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Name</th>
+                  <th>Rating</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="app-table-body">
+                <!-- Данные будут добавлены через JS -->
+              </tbody>
+            </table>
+          `;
+          
+          // Заменяем стандартное поле на нашу таблицу
+          const formField = document.getElementById('app_list');
+          formField.parentNode.replaceChild(container, formField);
+          
+          // Загрузка данных
+          fetch('http://localhost:8085/api/applications')
+            .then(response => response.json())
+            .then(apps => {
+              const tbody = document.getElementById('app-table-body');
+              tbody.innerHTML = apps.map(app => `
+                <tr>
+                  <td>${app.id}</td>
+                  <td>${app.name}</td>
+                  <td>${app.rating}</td>
+                  <td>${app.status}</td>
+                </tr>
+              `).join('');
+            });
+        })();
+      ]]>
+    </camunda:formScript>
+  </bpmn:extensionElements>
+</bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="LoadAppsTask" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="LoadAppsTask" targetRef="DisplayAppsTask" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="application_catalog_process">
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="152" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="LoadAppsTask_di" bpmnElement="LoadAppsTask">
+        <dc:Bounds x="240" y="80" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DisplayAppsTask_di" bpmnElement="DisplayAppsTask">
+        <dc:Bounds x="400" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="188" y="120" />
+        <di:waypoint x="240" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="340" y="120" />
+        <di:waypoint x="400" y="120" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

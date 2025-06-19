@@ -12,6 +12,7 @@ import com.example.BLPS.config.MqttMessageSender;
 import jakarta.annotation.PostConstruct;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -38,11 +39,11 @@ public class ApplicationService {
     private final String xmlFilePath = "src/main/resources/users.xml";
     private final String moderationQueueName = "moderation-queue";
     private final JiraAdapterClient jiraAdapterClient;
-
     private Platform platform;
+    private final JdbcTemplate jdbcTemplate;
 
     @Autowired
-    public ApplicationService(ApplicationRepository applicationRepository, PlatformService platformService, TagService tagService, DeveloperService developerService, PlatformTransactionManager transactionManager, MqttMessageSender mqttMessageSender, JiraAdapterClient jiraAdapterClient) {
+    public ApplicationService(ApplicationRepository applicationRepository, PlatformService platformService, TagService tagService, DeveloperService developerService, PlatformTransactionManager transactionManager, MqttMessageSender mqttMessageSender, JiraAdapterClient jiraAdapterClient, JdbcTemplate jdbcTemplate) {
         this.applicationRepository = applicationRepository;
         this.platformService = platformService;
         this.tagService = tagService;
@@ -50,6 +51,7 @@ public class ApplicationService {
         this.transactionManager = transactionManager;
         this.mqttMessageSender = mqttMessageSender;
         this.jiraAdapterClient = jiraAdapterClient;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @PostConstruct
@@ -312,7 +314,12 @@ public class ApplicationService {
             }
 
             app.setStatus(newStatus);
-            applicationRepository.save(app);
+//            applicationRepository.save(app);
+            jdbcTemplate.update(
+                    "UPDATE applications SET moderation_status = ? WHERE id = ?",
+                    newStatus,
+                    applicationId
+            );
 
             jiraAdapterClient.completeTaskByAppId(app.getId());
 
