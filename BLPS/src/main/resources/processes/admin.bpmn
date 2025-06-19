@@ -1,9 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:modeler="http://camunda.org/schema/modeler/1.0" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" id="Definitions_0ki69jh" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.35.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.6.0">
-  <bpmn:process id="Process_0cey4lm" isExecutable="true">
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_0ki69jh" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.35.0" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.20.0">
+  <bpmn:process id="Process_0cey4lm" isExecutable="true" camunda:historyTimeToLive="180">
     <bpmn:startEvent id="StartEvent_1">
       <bpmn:outgoing>Flow_1l0cu05</bpmn:outgoing>
     </bpmn:startEvent>
+<bpmn:userTask id="adminReview" name="Admin selects action">
+  <bpmn:extensionElements>
+    <camunda:formData>
+      <camunda:formField id="applicationId" label="Application ID" type="long" />
+      <camunda:formField id="developerId" label="Developer ID" type="long" />
+      <camunda:formField id="action" label="Choose action" type="enum" defaultValue="approve">
+        <camunda:value id="approve" name="Approve" />
+        <camunda:value id="reject" name="Reject" />
+        <camunda:value id="ban" name="Ban" />
+      </camunda:formField>
+    </camunda:formData>
+  </bpmn:extensionElements>
+</bpmn:userTask>
+
     <bpmn:sequenceFlow id="Flow_1l0cu05" sourceRef="StartEvent_1" targetRef="adminReview" />
     <bpmn:exclusiveGateway id="Gateway_1wllo9q">
       <bpmn:incoming>Flow_0l9ao8o</bpmn:incoming>
@@ -11,31 +25,27 @@
       <bpmn:outgoing>Flow_04vgiu2</bpmn:outgoing>
       <bpmn:outgoing>Flow_1v5xadf</bpmn:outgoing>
     </bpmn:exclusiveGateway>
-    <bpmn:serviceTask id="Activity_18a85oh" name="approve" camunda:delegateExpression="${approveApplicationDelegate}">
-      <bpmn:extensionElements>
-        <zeebe:executionListeners>
-          <zeebe:executionListener eventType="start" />
-        </zeebe:executionListeners>
-      </bpmn:extensionElements>
-      <bpmn:incoming>Flow_1e5653u</bpmn:incoming>
-      <bpmn:outgoing>Flow_1s38gca</bpmn:outgoing>
-    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_0l9ao8o" sourceRef="adminReview" targetRef="Gateway_1wllo9q" />
+<bpmn:serviceTask id="Activity_18a85oh" name="approve" camunda:type="external" camunda:topic="approveApplication">
+  <bpmn:incoming>Flow_1e5653u</bpmn:incoming>
+  <bpmn:outgoing>Flow_1s38gca</bpmn:outgoing>
+</bpmn:serviceTask>
     <bpmn:sequenceFlow id="Flow_1e5653u" sourceRef="Gateway_1wllo9q" targetRef="Activity_18a85oh">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=approve</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${action == "approve"}</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
-    <bpmn:serviceTask id="Activity_1d4zda4" name="reject" camunda:delegateExpression="${rejectApplicationDelegate}">
-      <bpmn:incoming>Flow_04vgiu2</bpmn:incoming>
-      <bpmn:outgoing>Flow_0g2qf91</bpmn:outgoing>
-    </bpmn:serviceTask>
+<bpmn:serviceTask id="Activity_1d4zda4" name="reject" camunda:type="external" camunda:topic="rejectApplication">
+  <bpmn:incoming>Flow_04vgiu2</bpmn:incoming>
+  <bpmn:outgoing>Flow_0g2qf91</bpmn:outgoing>
+</bpmn:serviceTask>
     <bpmn:sequenceFlow id="Flow_04vgiu2" sourceRef="Gateway_1wllo9q" targetRef="Activity_1d4zda4">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=reject</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${action == "reject"}</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
-    <bpmn:serviceTask id="Activity_1gxirvi" name="ban" camunda:delegateExpression="${banDeveloperDelegate}">
-      <bpmn:incoming>Flow_1v5xadf</bpmn:incoming>
-      <bpmn:outgoing>Flow_092rwsp</bpmn:outgoing>
-    </bpmn:serviceTask>
+<bpmn:serviceTask id="Activity_1gxirvi" name="ban" camunda:type="external" camunda:topic="banDeveloper">
+  <bpmn:incoming>Flow_1v5xadf</bpmn:incoming>
+  <bpmn:outgoing>Flow_092rwsp</bpmn:outgoing>
+</bpmn:serviceTask>
     <bpmn:sequenceFlow id="Flow_1v5xadf" sourceRef="Gateway_1wllo9q" targetRef="Activity_1gxirvi">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=ban</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${action == "ban"}</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:endEvent id="Event_13sq8hy">
       <bpmn:incoming>Flow_1s38gca</bpmn:incoming>
@@ -45,20 +55,15 @@
     <bpmn:sequenceFlow id="Flow_1s38gca" sourceRef="Activity_18a85oh" targetRef="Event_13sq8hy" />
     <bpmn:sequenceFlow id="Flow_0g2qf91" sourceRef="Activity_1d4zda4" targetRef="Event_13sq8hy" />
     <bpmn:sequenceFlow id="Flow_092rwsp" sourceRef="Activity_1gxirvi" targetRef="Event_13sq8hy" />
-    <bpmn:userTask id="adminReview" name="Admin selects action">
-      <bpmn:extensionElements>
-        <zeebe:taskDefinition type="admin-review" />
-        <zeebe:formDefinition formKey="camunda-forms:embedded:generated-form" />
-      </bpmn:extensionElements>
-      <bpmn:incoming>Flow_1l0cu05</bpmn:incoming>
-      <bpmn:outgoing>Flow_0l9ao8o</bpmn:outgoing>
-    </bpmn:userTask>
-    <bpmn:sequenceFlow id="Flow_0l9ao8o" sourceRef="adminReview" targetRef="Gateway_1wllo9q" />
   </bpmn:process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
     <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_0cey4lm">
       <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
         <dc:Bounds x="182" y="222" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="adminReview_di" bpmnElement="adminReview">
+        <dc:Bounds x="260" y="200" width="100" height="80" />
+        <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Gateway_1wllo9q_di" bpmnElement="Gateway_1wllo9q" isMarkerVisible="true">
         <dc:Bounds x="425" y="215" width="50" height="50" />
@@ -78,13 +83,13 @@
       <bpmndi:BPMNShape id="Event_13sq8hy_di" bpmnElement="Event_13sq8hy">
         <dc:Bounds x="732" y="222" width="36" height="36" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="adminReview_di" bpmnElement="adminReview">
-        <dc:Bounds x="260" y="200" width="100" height="80" />
-        <bpmndi:BPMNLabel />
-      </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_1l0cu05_di" bpmnElement="Flow_1l0cu05">
         <di:waypoint x="218" y="240" />
         <di:waypoint x="260" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0l9ao8o_di" bpmnElement="Flow_0l9ao8o">
+        <di:waypoint x="360" y="240" />
+        <di:waypoint x="425" y="240" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1e5653u_di" bpmnElement="Flow_1e5653u">
         <di:waypoint x="450" y="215" />
@@ -113,10 +118,6 @@
         <di:waypoint x="630" y="350" />
         <di:waypoint x="750" y="350" />
         <di:waypoint x="750" y="258" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_0l9ao8o_di" bpmnElement="Flow_0l9ao8o">
-        <di:waypoint x="360" y="240" />
-        <di:waypoint x="425" y="240" />
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>

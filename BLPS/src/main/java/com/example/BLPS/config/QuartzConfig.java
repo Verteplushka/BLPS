@@ -36,7 +36,7 @@ public class QuartzConfig {
                 .forJob(updateRatingsJobDetail())
                 .withIdentity("updateRatingsTrigger")
                 .withSchedule(SimpleScheduleBuilder.simpleSchedule()
-                        .withIntervalInSeconds(10) // Каждые 10 секунд
+                        .withIntervalInSeconds(10000) // Каждые 10 секунд
                         .repeatForever())
                 .build();
     }

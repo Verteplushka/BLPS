@@ -15,6 +15,7 @@ spring:
     pub-sub-domain: false  # false = очередь, true = топик
 
 server:
-  port: 8085
-  servlet:
-    context-path: /camunda  # если хотите /camunda/app/tasklist
+  port: 8080
+camunda:
+  bpm:
+    enabled: false

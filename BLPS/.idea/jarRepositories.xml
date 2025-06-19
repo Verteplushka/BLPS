@@ -2,9 +2,19 @@
 <project version="4">
   <component name="RemoteRepositoriesConfiguration">
     <remote-repository>
+      <option name="id" value="camunda-nexus" />
+      <option name="name" value="Camunda Nexus" />
+      <option name="url" value="https://app.camunda.com/nexus/content/groups/public" />
+    </remote-repository>
+    <remote-repository>
       <option name="id" value="central" />
       <option name="name" value="Central Repository" />
       <option name="url" value="https://repo.maven.apache.org/maven2" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="camunda-bpm-nexus" />
+      <option name="name" value="Camunda BPM" />
+      <option name="url" value="https://app.camunda.com/nexus/content/groups/public" />
     </remote-repository>
     <remote-repository>
       <option name="id" value="central" />

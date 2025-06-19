@@ -130,10 +130,26 @@
 			<artifactId>camunda-bpm-spring-boot-starter-webapp</artifactId>
 			<version>7.19.0</version>
 		</dependency>
+<!--		<dependency>-->
+<!--			<groupId>org.camunda.bpm.springboot</groupId>-->
+<!--			<artifactId>camunda-bpm-spring-boot-starter</artifactId>-->
+<!--			<version>7.23.0</version>-->
+<!--		</dependency>-->
+<!--		<dependency>-->
+<!--			<groupId>org.camunda.bpm.webapp</groupId>-->
+<!--			<artifactId>camunda-webapp</artifactId>-->
+<!--			<version>7.20.0</version>-->
+<!--			<scope>system</scope>-->
+<!--&lt;!&ndash;			<systemPath>${project.basedir}/libs/camunda-webapp-7.20.0.jar</systemPath>&ndash;&gt;-->
+<!--		</dependency>-->
+<!--		<dependency>-->
+<!--			<groupId>org.camunda.bpm.webapp</groupId>-->
+<!--			<artifactId>camunda-webapp</artifactId>-->
+<!--			<version>7.20.0</version>-->
+<!--		</dependency>-->
 		<dependency>
-			<groupId>org.camunda.bpm.springboot</groupId>
-			<artifactId>camunda-bpm-spring-boot-starter</artifactId>
-			<version>7.23.0</version>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>
@@ -146,6 +162,14 @@
 			<version>4.0.2</version>
 		</dependency>
 	</dependencies>
+
+<!--	<repositories>-->
+<!--		<repository>-->
+<!--			<id>camunda-nexus</id>-->
+<!--			<name>Camunda Nexus</name>-->
+<!--			<url>https://app.camunda.com/nexus/content/groups/public</url>-->
+<!--		</repository>-->
+<!--	</repositories>-->
 
 	<build>
 		<plugins>
@@ -163,5 +187,4 @@
 			</plugin>
 		</plugins>
     </build>
-
 </project>
