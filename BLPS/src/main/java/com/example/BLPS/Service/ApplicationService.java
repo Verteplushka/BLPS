@@ -10,6 +10,7 @@ import com.example.BLPS.Utils.UserXmlReader;
 import com.example.BLPS.config.JiraAdapterClient;
 import com.example.BLPS.config.MqttMessageSender;
 import jakarta.annotation.PostConstruct;
+import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -41,9 +42,10 @@ public class ApplicationService {
     private final JiraAdapterClient jiraAdapterClient;
     private Platform platform;
     private final JdbcTemplate jdbcTemplate;
+    private final EntityManager entityManager;
 
     @Autowired
-    public ApplicationService(ApplicationRepository applicationRepository, PlatformService platformService, TagService tagService, DeveloperService developerService, PlatformTransactionManager transactionManager, MqttMessageSender mqttMessageSender, JiraAdapterClient jiraAdapterClient, JdbcTemplate jdbcTemplate) {
+    public ApplicationService(ApplicationRepository applicationRepository, PlatformService platformService, TagService tagService, DeveloperService developerService, PlatformTransactionManager transactionManager, MqttMessageSender mqttMessageSender, JiraAdapterClient jiraAdapterClient, JdbcTemplate jdbcTemplate, EntityManager entityManager) {
         this.applicationRepository = applicationRepository;
         this.platformService = platformService;
         this.tagService = tagService;
@@ -52,6 +54,7 @@ public class ApplicationService {
         this.mqttMessageSender = mqttMessageSender;
         this.jiraAdapterClient = jiraAdapterClient;
         this.jdbcTemplate = jdbcTemplate;
+        this.entityManager = entityManager;
     }
 
     @PostConstruct
@@ -338,13 +341,14 @@ public class ApplicationService {
 
         try {
             Developer developer = developerService.findById(developerId);
+
             List<Application> apps = applicationRepository.findAllByDeveloper(developer);
 
             for (Application app : apps) {
                 app.setStatus(Status.REJECTED);
+                entityManager.merge(app);
             }
 
-            applicationRepository.saveAll(apps);
             transactionManager.commit(status);
         } catch (Exception ex) {
             transactionManager.rollback(status);

@@ -59,23 +59,53 @@ public class CamundaExternalTaskHandler {
         client.subscribe("banDeveloper")
                 .lockDuration(1000)
                 .handler((externalTask, externalTaskService) -> {
-                    Integer devId = externalTask.getVariable("developerId");
-                    System.out.println("ban");
-                    applicationService.rejectAllApplicationsByDeveloper(devId);
-                    externalTaskService.complete(externalTask);
+                    Map<String, Object> variables = new HashMap<>();
+                    try {
+                        Integer devId = Integer.valueOf(externalTask.getVariable("developerId").toString());
+                        applicationService.rejectAllApplicationsByDeveloper(devId);
+
+                        variables.put("approvalStatus", "SUCCESS");
+                        variables.put("approvalMessage", "Application approved successfully");
+
+                    } catch (Exception e) {
+                        variables.put("approvalStatus", "FAILED");
+                        variables.put("approvalError", e.getMessage());
+                        externalTaskService.handleFailure(
+                                externalTask,
+                                e.getMessage(),
+                                e.toString(),
+                                0, // попыток больше не будет
+                                0  // без задержки
+                        );
+                    }
+
+                    externalTaskService.complete(externalTask, variables);
                 })
                 .open();
         client.subscribe("rejectApplication")
                 .lockDuration(1000)
                 .handler((externalTask, externalTaskService) -> {
-                    Long appId = externalTask.getVariable("applicationId");
-                    System.out.println("reject");
-                    jdbcTemplate.update(
-                            "UPDATE applications SET moderation_status = ? WHERE id = ?",
-                            "REJECTED",
-                            appId
-                    );
-                    externalTaskService.complete(externalTask);
+                    Map<String, Object> variables = new HashMap<>();
+                    try {
+                        Long appId = Long.valueOf(externalTask.getVariable("applicationId").toString());
+                        applicationService.updateModerationStatus(appId, Status.REJECTED);
+
+                        variables.put("approvalStatus", "SUCCESS");
+                        variables.put("approvalMessage", "Application approved successfully");
+
+                    } catch (Exception e) {
+                        variables.put("approvalStatus", "FAILED");
+                        variables.put("approvalError", e.getMessage());
+                        externalTaskService.handleFailure(
+                                externalTask,
+                                e.getMessage(),
+                                e.toString(),
+                                0, // попыток больше не будет
+                                0  // без задержки
+                        );
+                    }
+
+                    externalTaskService.complete(externalTask, variables);
                 })
                 .open();
     }
