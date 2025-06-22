@@ -8,6 +8,7 @@ import com.example.BLPS.Service.ApplicationService;
 import com.example.BLPS.Service.DeveloperService;
 import com.example.BLPS.camunda.RestMethods;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -102,13 +103,6 @@ public class ApplicationController {
         }
     }
 
-    // Поиск приложения по названию (различные варианты совпадений)
-    @GetMapping("/searchByName")
-    public ResponseEntity<?> searchApplications(@RequestParam String name) {
-        Object result = applicationService.searchApplications(name);
-        return ResponseEntity.ok(result);
-    }
-
     @GetMapping("/getApp")
     public ResponseEntity<?> getApp(@RequestParam Long id, @RequestParam String processInstanceId) {
         try {
@@ -151,8 +145,56 @@ public class ApplicationController {
         }
     }
 
+    // Поиск приложения по названию (различные варианты совпадений)
+    @GetMapping("/searchByName")
+    public ResponseEntity<?> searchApplications(@RequestParam String name, @RequestParam String processInstanceId) {
+        try {
+            restMethods.completeTaskAndWaitForResult(processInstanceId, Map.of("selectedAction", "searchByString"));
+            Map<String, Object> result = restMethods.completeTaskAndWaitForResult(processInstanceId, Map.of("searchQuery", name));
+
+            String status = (String) result.getOrDefault("status", "UNKNOWN");
+
+            if ("FAILED".equalsIgnoreCase(status) || "TIMEOUT".equalsIgnoreCase(status)) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of(
+                                "status", status,
+                                "error", result.getOrDefault("error", "Couldn't search app"),
+                                "processInstanceId", processInstanceId
+                        ));
+            }
+
+            String json = (String) restMethods.getVariableByProcessId(processInstanceId, "appJson");
+            ObjectMapper mapper = new ObjectMapper();
+
+            try {
+                List<ApplicationDto> apps = mapper.readValue(json, new TypeReference<List<ApplicationDto>>() {});
+                return ResponseEntity.ok(apps);
+            } catch (Exception e1) {
+                try {
+                    ExactMatchDto match = mapper.readValue(json, new TypeReference<ExactMatchDto>() {});
+                    return ResponseEntity.ok(match);
+                } catch (Exception e2) {
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                            "status", "FAILED",
+                            "error", "Не удалось определить формат JSON. Возможно, это неизвестная структура.",
+                            "details", e2.getMessage()
+                    ));
+                }
+            }
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of(
+                            "status", "FAILED",
+                            "error", e.getMessage(),
+                            "processInstanceId", processInstanceId
+                    ));
+        }
+    }
+
+
     @GetMapping("/exactSearch")
-    public ResponseEntity<?> exactSearch(@RequestParam String name) {
+    public ResponseEntity<?> exactSearch(@RequestParam String name, @RequestParam String processInstanceId) {
         try {
             return ResponseEntity.ok(applicationService.exactSearch(name));
         } catch (AppsNotFoundException e) {

@@ -123,29 +123,54 @@ public class ApplicationService {
 
 
     public Object searchApplications(String name) {
-        // Проверка на полное совпадение
+        Object exact = searchExactMatch(name);
+        if (exact != null) return exact;
+
+        Object fuzzy = searchFuzzyMatch(name);
+        if (fuzzy != null) return fuzzy;
+
+        Object partial = searchPartialMatch(name);
+        if (partial != null) return partial;
+
+        return new NotFoundDto(
+                "Приложение с названием \"" + name + "\" не найдено. Вот приложения, которые могут вам понравиться",
+                getRecommendedApplications()
+        );
+    }
+
+    @Transactional
+    public ExactMatchDto searchExactMatch(String name) {
         ApplicationDtoDetailed exactMatch = findByExactName(name);
         if (exactMatch != null) {
             return new ExactMatchDto(exactMatch, "Приложение найдено по полному совпадению.");
         }
+        return null;
+    }
 
-        // Поиск похожего приложения
+    @Transactional
+    public ExactMatchDto searchFuzzyMatch(String name) {
         if (name.length() > 2) {
             Application fuzzyMatch = findFuzzyMatch(name);
             if (fuzzyMatch != null) {
-                return new ExactMatchDto(ApplicationMapper.toDtoDetailed(fuzzyMatch), "Найдено похожее приложение. Хотите вместо этого выполнить поиск по исходной строке?");
+                return new ExactMatchDto(
+                        ApplicationMapper.toDtoDetailed(fuzzyMatch),
+                        "Найдено похожее приложение. Хотите вместо этого выполнить поиск по исходной строке?"
+                );
             }
         }
+        return null;
+    }
 
-        // Поиск по неполному совпадению
-        List<Application> applications = applicationRepository.findByNameContainingIgnoreCaseAndPlatformAndStatus(name, platform, Status.APPROVED);
+    @Transactional
+    public List<ApplicationDto> searchPartialMatch(String name) {
+        List<Application> applications = applicationRepository
+                .findByNameContainingIgnoreCaseAndPlatformAndStatus(name, platform, Status.APPROVED);
 
         if (!applications.isEmpty()) {
             return ApplicationMapper.toDtoList(applications);
         }
 
-        // Если ничего не найдено
-        return new NotFoundDto("Приложение с названием \"" + name + "\" не найдено. Вот приложения, которые могут вам понравиться", getRecommendedApplications());
+        return null;
     }
 
     private Application findFuzzyMatch(String query) {
