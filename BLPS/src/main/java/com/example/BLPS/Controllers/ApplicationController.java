@@ -72,8 +72,6 @@ public class ApplicationController {
             ));
         }
 
-        Thread.sleep(5000);
-
         try {
             String json = (String) restMethods.getVariableByProcessId((String) result.get("processInstanceId"), "appsListJson");
             ObjectMapper mapper = new ObjectMapper();
