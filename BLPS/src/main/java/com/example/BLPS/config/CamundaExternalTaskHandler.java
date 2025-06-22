@@ -1,17 +1,23 @@
 package com.example.BLPS.config;
 
+import com.example.BLPS.Dto.ApplicationDto;
+import com.example.BLPS.Dto.CategoryDto;
 import com.example.BLPS.Entities.Status;
 import com.example.BLPS.Service.ApplicationService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.camunda.bpm.client.ExternalTaskClient;
+import org.camunda.bpm.engine.variable.Variables;
+import org.camunda.bpm.engine.variable.value.ObjectValue;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Component
@@ -113,12 +119,12 @@ public class CamundaExternalTaskHandler {
                         System.out.println(currentPlatform);
                         applicationService.changePlatform(currentPlatform);
 
-                        variables.put("approvalStatus", "SUCCESS");
-                        variables.put("approvalMessage", "Application approved successfully");
+                        variables.put("changeStatus", "SUCCESS");
+                        variables.put("changeMessage", "Platform changed successfully");
 
                     } catch (Exception e) {
-                        variables.put("approvalStatus", "FAILED");
-                        variables.put("approvalError", e.getMessage());
+                        variables.put("changeStatus", "FAILED");
+                        variables.put("changeError", e.getMessage());
                         externalTaskService.handleFailure(
                                 externalTask,
                                 e.getMessage(),
@@ -136,13 +142,14 @@ public class CamundaExternalTaskHandler {
                     Map<String, Object> variables = new HashMap<>();
                     try {
                         applicationService.changePlatform("phone");
+                        System.out.println("Platform changed");
 
-                        variables.put("approvalStatus", "SUCCESS");
-                        variables.put("approvalMessage", "Application approved successfully");
+                        variables.put("changeStatus", "SUCCESS");
+                        variables.put("changeMessage", "Platform changed successfully");
 
                     } catch (Exception e) {
-                        variables.put("approvalStatus", "FAILED");
-                        variables.put("approvalError", e.getMessage());
+                        variables.put("changeStatus", "FAILED");
+                        variables.put("changeError", e.getMessage());
                         externalTaskService.handleFailure(
                                 externalTask,
                                 e.getMessage(),
@@ -157,18 +164,26 @@ public class CamundaExternalTaskHandler {
                 .open();
         client.subscribe("returnAppsList")
                 .handler((externalTask, externalTaskService) -> {
-                    Map<String, Object> variables = new HashMap<>();
                     try {
-                        String currentPlatform = externalTask.getVariable("currentPlatform").toString();
-                        System.out.println(currentPlatform);
+                        //String currentPlatform = externalTask.getVariable("currentPlatform").toString();
+                        //System.out.println(currentPlatform);
+                        List<CategoryDto> categories = applicationService.getApplicationsByCategories();
                         applicationService.getApplicationsByCategories();
 
-                        variables.put("approvalStatus", "SUCCESS");
-                        variables.put("approvalMessage", "Application approved successfully");
+                        ObjectMapper mapper = new ObjectMapper();
+                        String appsJson = mapper.writeValueAsString(categories);
+
+                        ObjectValue appsValue = Variables
+                                .objectValue(appsJson)
+                                .serializationDataFormat("application/json") // <-- обязательно!
+                                .create();
+
+                        externalTaskService.complete(externalTask, Map.of("appsListJson", appsValue));
 
                     } catch (Exception e) {
-                        variables.put("approvalStatus", "FAILED");
-                        variables.put("approvalError", e.getMessage());
+                        Map<String, Object> variables = new HashMap<>();
+                        variables.put("status", "FAILED");
+                        variables.put("error", e.getMessage());
                         externalTaskService.handleFailure(
                                 externalTask,
                                 e.getMessage(),
@@ -176,9 +191,8 @@ public class CamundaExternalTaskHandler {
                                 0, // попыток больше не будет
                                 0  // без задержки
                         );
+                        externalTaskService.complete(externalTask, variables);
                     }
-
-                    externalTaskService.complete(externalTask, variables);
                 })
                 .open();
     }

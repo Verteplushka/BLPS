@@ -1,5 +1,8 @@
 package com.example.BLPS.camunda;
 
+import com.example.BLPS.Dto.ApplicationDto;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.ParameterizedTypeReference;
@@ -21,17 +24,15 @@ public class RestMethods {
 
     private final RestTemplate restTemplate;
     private final String CAMUNDA_BASE_URL = "http://localhost:8085/engine-rest";
-    private final String PROCESS_DEFINITION_KEY = "admin_process";
 
-    public String startProcess(String action, Map<String, Object> additionalVariables) {
-        // Объединяем обязательные переменные и дополнительные
-        Map<String, Object> mergedVars = new HashMap<>(additionalVariables);
-        mergedVars.put("action", action);
-
-        return startProcessWithVariables(mergedVars);
+    public String startProcess(String url, Map<String, Object> variables) {
+        if(variables == null){
+            variables = new HashMap<>();
+        }
+        return startProcessWithVariables(url, variables);
     }
 
-    public String startProcessWithVariables(Map<String, Object> variables) {
+    public String startProcessWithVariables(String url, Map<String, Object> variables) {
         // Преобразуем переменные в формат Camunda
         Map<String, Map<String, Object>> camundaVars = variables.entrySet().stream()
                 .collect(Collectors.toMap(
@@ -41,7 +42,7 @@ public class RestMethods {
 
         // Запускаем процесс
         ResponseEntity<Map> response = restTemplate.postForEntity(
-                CAMUNDA_BASE_URL + "/process-definition/key/" + PROCESS_DEFINITION_KEY + "/start",
+                url + "/start",
                 Map.of("variables", camundaVars),
                 Map.class
         );
@@ -49,7 +50,7 @@ public class RestMethods {
         return (String) response.getBody().get("id");
     }
 
-    public void completeTask(String processInstanceId, Map<String, Object> variables) {
+    public void completeTask(String url, String processInstanceId, Map<String, Object> variables) {
         // 1. Находим задачу
         ResponseEntity<List<Map>> tasksResponse = restTemplate.exchange(
                 CAMUNDA_BASE_URL + "/task?processInstanceId=" + processInstanceId,
@@ -77,22 +78,22 @@ public class RestMethods {
         });
     }
 
-    public Map<String, Object> startProcessAndWaitForResult(Map<String, Object> inputVariables, String action) {
+    public Map<String, Object> startProcessAndWaitForResult(String url, Map<String, Object> inputVariables) {
         Map<String, Object> result = new HashMap<>();
 
         try {
             // 1. Стартуем процесс
-            String processInstanceId = startProcess(action, inputVariables);
+            String processInstanceId = startProcess(url, inputVariables);
             result.put("processInstanceId", processInstanceId);
 
             int retries = 30;
             int delayMs = 500;
 
             Map<String, Object> variables = new HashMap<>();
-            variables.put(action + "By", "admin");
-            variables.put(action + "Date", new Date().toString());
+            variables.put("By", "admin");
+            variables.put("Date", new Date().toString());
 
-            completeTask(processInstanceId, variables);
+            completeTask(url, processInstanceId, variables);
 
             for (int i = 0; i < retries; i++) {
                 Thread.sleep(delayMs);
@@ -159,4 +160,36 @@ public class RestMethods {
         return result;
     }
 
+    public Object getVariableByProcessId(String processInstanceId, String variableName) {
+        int retries = 30;
+        int delayMs = 500;
+
+        for (int i = 0; i < retries; i++) {
+            try {
+                ResponseEntity<Map> response = restTemplate.getForEntity(
+                        CAMUNDA_BASE_URL + "/process-instance/" + processInstanceId + "/variables/" + variableName,
+                        Map.class
+                );
+
+                Map<String, Object> varData = response.getBody();
+                if (varData != null && varData.containsKey("value")) {
+                    return varData.get("value");
+                }
+
+            } catch (HttpClientErrorException.NotFound e) {
+                // переменная ещё не появилась — ждём и повторим
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to fetch variable: " + e.getMessage(), e);
+            }
+
+            try {
+                Thread.sleep(delayMs);
+            } catch (InterruptedException ignored) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+
+        return null; // по истечении ожидания переменная не появилась
+    }
 }

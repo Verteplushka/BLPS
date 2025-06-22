@@ -24,11 +24,9 @@ public class AdminController {
 
     private final ApplicationService applicationService;
 
-    private final RestTemplate restTemplate;
-
     private final RestMethods restMethods;
 
-    private static final String CAMUNDA_URL = "http://localhost:8085/engine-rest/process-definition/key/admin_process/start";
+    private static final String CAMUNDA_URL = "http://localhost:8085/engine-rest/process-definition/key/admin_process/";
 
     @GetMapping("/pending")
     public ResponseEntity<List<ApplicationDtoDetailed>> getPendingApplications() {
@@ -38,9 +36,10 @@ public class AdminController {
 
     @PostMapping("/approve/{id}")
     public ResponseEntity<Map<String, Object>> approveApplication(@PathVariable Long id) {
-        Map<String, Object> result = restMethods.startProcessAndWaitForResult(Map.of("applicationId", id), "approve");
+        Map<String, Object> result = restMethods.startProcessAndWaitForResult(CAMUNDA_URL, Map.of("applicationId", id, "action", "approve"));
 
         String status = (String) result.getOrDefault("status", "UNKNOWN");
+        System.out.println();
 
         if ("FAILED".equalsIgnoreCase(status)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -70,7 +69,7 @@ public class AdminController {
 
     @PostMapping("/reject/{id}")
     public ResponseEntity<Map<String, Object>> rejectApplication(@PathVariable Long id) {
-        Map<String, Object> result = restMethods.startProcessAndWaitForResult(Map.of("applicationId", id), "reject");
+        Map<String, Object> result = restMethods.startProcessAndWaitForResult(CAMUNDA_URL, Map.of("applicationId", id, "action", "reject"));
 
         String status = (String) result.getOrDefault("status", "UNKNOWN");
 
@@ -101,7 +100,7 @@ public class AdminController {
 
     @PostMapping("/ban/{developerId}")
     public ResponseEntity<Map<String, Object>> banDeveloper(@PathVariable Integer developerId) {
-        Map<String, Object> result = restMethods.startProcessAndWaitForResult(Map.of("developerId", developerId), "ban");
+        Map<String, Object> result = restMethods.startProcessAndWaitForResult(CAMUNDA_URL, Map.of("developerId", developerId, "action", "ban"));
 
         String status = (String) result.getOrDefault("status", "UNKNOWN");
 

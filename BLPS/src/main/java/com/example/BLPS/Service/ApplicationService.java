@@ -101,6 +101,7 @@ public class ApplicationService {
         return categories;
     }
 
+    @Transactional
     public List<CategoryDto> getApplicationsByCategories() {
         List<CategoryDto> categories = new ArrayList<>();
         categories.add(new CategoryDto("popular", getTop10Applications()));
@@ -318,9 +319,10 @@ public class ApplicationService {
 
             app.setStatus(newStatus);
 //            applicationRepository.save(app);
+            System.out.println(newStatus.name() + " " + applicationId);
             jdbcTemplate.update(
                     "UPDATE applications SET moderation_status = ? WHERE id = ?",
-                    newStatus,
+                    newStatus.name(),
                     applicationId
             );
 

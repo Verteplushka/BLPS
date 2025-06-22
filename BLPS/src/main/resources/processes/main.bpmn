@@ -12,13 +12,13 @@
       <bpmn:outgoing>Flow_0ivcncj</bpmn:outgoing>
     </bpmn:userTask>
     <bpmn:sequenceFlow id="Flow_0idi4pb" sourceRef="StartEvent_1" targetRef="Activity_07a1yz7" />
-    <bpmn:scriptTask id="Activity_00fs98z" name="Select default platform &#39;phone&#39;" scriptFormat="groovy">
+    <bpmn:serviceTask id="Activity_00fs98z" name="Select default platform &#39;phone&#39;" camunda:type="external" camunda:topic="selectDefaultPlatform">
       <bpmn:incoming>Flow_0ivcncj</bpmn:incoming>
       <bpmn:outgoing>Flow_0h8fozr</bpmn:outgoing>
-      <bpmn:script>
+      <!-- <bpmn:script>
         execution.setVariable("currentPlatform", "phone")
-      </bpmn:script>
-    </bpmn:scriptTask>
+      </bpmn:script> -->
+    </bpmn:serviceTask>
     <bpmn:sequenceFlow id="Flow_0ivcncj" sourceRef="Activity_07a1yz7" targetRef="Activity_00fs98z" />
     <bpmn:serviceTask id="Activity_1orl803" name="Return apps list by categories" camunda:type="external" camunda:topic="returnAppsList">
       <bpmn:incoming>Flow_0h8fozr</bpmn:incoming>
