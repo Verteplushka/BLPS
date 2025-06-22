@@ -7,6 +7,7 @@ import com.example.BLPS.Exceptions.PlatformNotFoundException;
 import com.example.BLPS.Service.ApplicationService;
 import com.example.BLPS.Service.DeveloperService;
 import com.example.BLPS.camunda.RestMethods;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @RestController
@@ -53,15 +55,28 @@ public class ApplicationController {
         try {
             String json = (String) restMethods.getVariableByProcessId(processInstanceId, "appsListJson");
             ObjectMapper mapper = new ObjectMapper();
-            List<CategoryDto> categories = mapper.readValue(json, new TypeReference<>() {
-            });
 
-            return ResponseEntity.ok(categories);
+            try {
+                List<CategoryDto> categories = mapper.readValue(json, new TypeReference<List<CategoryDto>>() {});
+                return ResponseEntity.ok(categories);
+
+            } catch (JsonProcessingException e) {
+                try {
+                    List<ApplicationDto> applications = mapper.readValue(json, new TypeReference<List<ApplicationDto>>() {});
+                    return ResponseEntity.ok(applications);
+
+                } catch (JsonProcessingException ex) {
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                            "status", "FAILED",
+                            "error", "Failed to parse apps JSON as either Categories or Applications: " + ex.getMessage()
+                    ));
+                }
+            }
 
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
                     "status", "FAILED",
-                    "error", "Failed to parse apps JSON: " + e.getMessage()
+                    "error", "Failed to get apps JSON: " + e.getMessage()
             ));
         }
     }
@@ -166,21 +181,15 @@ public class ApplicationController {
             String json = (String) restMethods.getVariableByProcessId(processInstanceId, "appJson");
             ObjectMapper mapper = new ObjectMapper();
 
-            try {
-                List<ApplicationDto> apps = mapper.readValue(json, new TypeReference<List<ApplicationDto>>() {});
-                return ResponseEntity.ok(apps);
-            } catch (Exception e1) {
-                try {
-                    ExactMatchDto match = mapper.readValue(json, new TypeReference<ExactMatchDto>() {});
-                    return ResponseEntity.ok(match);
-                } catch (Exception e2) {
-                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
-                            "status", "FAILED",
-                            "error", "Не удалось определить формат JSON. Возможно, это неизвестная структура.",
-                            "details", e2.getMessage()
-                    ));
-                }
+            if(!Objects.equals(json, "null")){
+                ExactMatchDto match = mapper.readValue(json, new TypeReference<ExactMatchDto>() {});
+                return ResponseEntity.ok(match);
             }
+            json = (String) restMethods.getVariableByProcessId(processInstanceId, "appsListJson");
+            List<ApplicationDto> categories = mapper.readValue(json, new TypeReference<>() {
+            });
+
+            return ResponseEntity.ok(categories);
 
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

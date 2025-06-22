@@ -307,7 +307,7 @@ public class CamundaExternalTaskHandler {
                                 .serializationDataFormat("application/json")
                                 .create();
 
-                        externalTaskService.complete(externalTask, Map.of("appJson", appsValue, "foundSimilarApps", apps != null));
+                        externalTaskService.complete(externalTask, Map.of("appsListJson", appsValue, "foundSimilarApps", apps != null));
 
                     } catch (Exception e) {
                         Map<String, Object> variables = new HashMap<>();
