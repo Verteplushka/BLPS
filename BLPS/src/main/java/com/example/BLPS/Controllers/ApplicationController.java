@@ -30,39 +30,49 @@ public class ApplicationController {
     private static final String CAMUNDA_URL = "http://localhost:8085/engine-rest/process-definition/key/application_catalog_process/";
 
     @PostMapping("/changePlatform")
-    public ResponseEntity<Map<String, Object>> changePlatform(@RequestParam String platform) {
-        Map<String, Object> result = restMethods.startProcessAndWaitForResult(CAMUNDA_URL, null);
+    public ResponseEntity<Map<String, Object>> changePlatform(
+            @RequestParam String platform,
+            @RequestParam String processInstanceId
+    ) {
+        try {
 
-        String status = (String) result.getOrDefault("status", "UNKNOWN");
+            restMethods.completeTaskAndWaitForResult(processInstanceId, Map.of("selectedAction", "changePlatform"));
+            Map<String, Object> result = restMethods.completeTaskAndWaitForResult(processInstanceId, Map.of("currentPlatform", platform));
 
-        if ("FAILED".equalsIgnoreCase(status) || "TIMEOUT".equalsIgnoreCase(status)) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            String status = (String) result.getOrDefault("status", "UNKNOWN");
+
+            if ("FAILED".equalsIgnoreCase(status) || "TIMEOUT".equalsIgnoreCase(status)) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of(
+                                "status", status,
+                                "error", result.getOrDefault("error", "Couldn't change platform"),
+                                "processInstanceId", processInstanceId
+                        ));
+            }
+
+            return ResponseEntity.ok(Map.of(
+                    "status", "SUCCESS",
+                    "message", result.getOrDefault("message", "Platform changed"),
+                    "processInstanceId", processInstanceId
+            ));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of(
-                            "status", status,
-                            "error", result.getOrDefault("error", "Couldn't change platform"),
-                            "processInstanceId", result.get("processInstanceId")
+                            "status", "FAILED",
+                            "error", e.getMessage(),
+                            "processInstanceId", processInstanceId
                     ));
         }
-
-        return ResponseEntity.ok(Map.of(
-                "status", "APPROVED",
-                "message", result.getOrDefault("approvalMessage", "Application approved"),
-                "processInstanceId", result.get("processInstanceId")
-        ));
-
-//        try {
-//            applicationService.changePlatform(platform);
-//            return ResponseEntity.ok().build();
-//        } catch (PlatformNotFoundException e) {
-//            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-//        }
     }
 
+
     @GetMapping("/categories")
-    public ResponseEntity<?> getCategories() throws InterruptedException {
+    public ResponseEntity<?> getCategories(){
         Map<String, Object> result = restMethods.startProcessAndWaitForResult(CAMUNDA_URL, null);
 
         String status = (String) result.getOrDefault("status", "UNKNOWN");
+        String processInstanceId = (String) result.get("processInstanceId");
 
         if ("FAILED".equalsIgnoreCase(status) || "TIMEOUT".equalsIgnoreCase(status)) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
@@ -73,11 +83,11 @@ public class ApplicationController {
         }
 
         try {
-            String json = (String) restMethods.getVariableByProcessId((String) result.get("processInstanceId"), "appsListJson");
+            String json = (String) restMethods.getVariableByProcessId(processInstanceId, "appsListJson");
             ObjectMapper mapper = new ObjectMapper();
             List<CategoryDto> categories = mapper.readValue(json, new TypeReference<>() {});
 
-            return ResponseEntity.ok(categories);
+            return ResponseEntity.ok(new CamundaCategoryDto(processInstanceId, categories));
 
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
@@ -85,7 +95,6 @@ public class ApplicationController {
                     "error", "Failed to parse apps JSON: " + e.getMessage()
             ));
         }
-        //        return ResponseEntity.ok(applicationService.getApplicationsByCategories());
     }
 
     // Поиск приложения по названию (различные варианты совпадений)

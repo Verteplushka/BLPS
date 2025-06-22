@@ -26,7 +26,7 @@ public class RestMethods {
     private final String CAMUNDA_BASE_URL = "http://localhost:8085/engine-rest";
 
     public String startProcess(String url, Map<String, Object> variables) {
-        if(variables == null){
+        if (variables == null) {
             variables = new HashMap<>();
         }
         return startProcessWithVariables(url, variables);
@@ -50,13 +50,14 @@ public class RestMethods {
         return (String) response.getBody().get("id");
     }
 
-    public void completeTask(String url, String processInstanceId, Map<String, Object> variables) {
+    public void completeTask(String processInstanceId, Map<String, Object> variables) {
         // 1. Находим задачу
         ResponseEntity<List<Map>> tasksResponse = restTemplate.exchange(
                 CAMUNDA_BASE_URL + "/task?processInstanceId=" + processInstanceId,
                 HttpMethod.GET,
                 null,
-                new ParameterizedTypeReference<List<Map>>() {}
+                new ParameterizedTypeReference<List<Map>>() {
+                }
         );
 
         // 2. Завершаем все найденные задачи
@@ -86,20 +87,39 @@ public class RestMethods {
             String processInstanceId = startProcess(url, inputVariables);
             result.put("processInstanceId", processInstanceId);
 
-            int retries = 30;
-            int delayMs = 500;
+            // 2. Выполняем таску и ждём результат
+            return completeTaskAndWaitForResult(processInstanceId, null);
 
+        } catch (Exception e) {
+            result.put("status", "FAILED");
+            result.put("error", e.getMessage());
+            return result;
+        }
+    }
+
+    public Map<String, Object> completeTaskAndWaitForResult(String processInstanceId, Map<String, Object> taskVariables) {
+        Map<String, Object> result = new HashMap<>();
+        result.put("processInstanceId", processInstanceId);
+
+        try {
+            // 1. Завершаем таску
             Map<String, Object> variables = new HashMap<>();
+            if (taskVariables != null) {
+                variables.putAll(taskVariables);
+            }
             variables.put("By", "admin");
             variables.put("Date", new Date().toString());
+            completeTask(processInstanceId, variables);
 
-            completeTask(url, processInstanceId, variables);
+            // 2. Ожидаем результат
+            int retries = 30;
+            int delayMs = 500;
 
             for (int i = 0; i < retries; i++) {
                 Thread.sleep(delayMs);
 
                 try {
-                    // 2. Получаем состояние процесса из истории
+                    // Проверяем состояние процесса
                     ResponseEntity<Map> historyResponse = restTemplate.getForEntity(
                             CAMUNDA_BASE_URL + "/history/process-instance/" + processInstanceId,
                             Map.class
@@ -109,14 +129,14 @@ public class RestMethods {
                     if (history != null && history.get("state") != null) {
                         String state = (String) history.get("state");
 
-                        // Если процесс завершён
                         if ("COMPLETED".equalsIgnoreCase(state)) {
-                            // 3. Проверяем, есть ли инциденты
+                            // Проверяем инциденты
                             ResponseEntity<List<Map<String, Object>>> incResp = restTemplate.exchange(
                                     CAMUNDA_BASE_URL + "/history/incident?processInstanceId=" + processInstanceId,
                                     HttpMethod.GET,
                                     null,
-                                    new ParameterizedTypeReference<>() {}
+                                    new ParameterizedTypeReference<>() {
+                                    }
                             );
 
                             List<Map<String, Object>> incidents = incResp.getBody();
@@ -125,23 +145,21 @@ public class RestMethods {
                                 result.put("status", "FAILED");
                                 result.put("error", incident.get("incidentMessage"));
                                 result.put("incidentType", incident.get("incidentType"));
-                                result.put("incidentMessage", incident.get("incidentMessage"));
                             } else {
                                 result.put("status", "COMPLETED");
                                 result.put("message", "Process completed successfully");
                             }
-
                             return result;
                         }
 
-                        // Любой другой статус
+                        // Неожиданный статус
                         result.put("status", state);
                         result.put("message", "Unexpected process state: " + state);
                         return result;
                     }
 
                 } catch (HttpClientErrorException.NotFound ignored) {
-                    // процесс еще не завершился — продолжаем ждать
+                    // Продолжаем ждать
                 } catch (Exception e) {
                     result.put("status", "FAILED");
                     result.put("error", e.getMessage());
