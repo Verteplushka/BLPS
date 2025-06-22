@@ -1,6 +1,7 @@
 package com.example.BLPS.config;
 
 import com.example.BLPS.Dto.ApplicationDto;
+import com.example.BLPS.Dto.ApplicationDtoDetailed;
 import com.example.BLPS.Dto.CategoryDto;
 import com.example.BLPS.Entities.Status;
 import com.example.BLPS.Service.ApplicationService;
@@ -165,8 +166,6 @@ public class CamundaExternalTaskHandler {
         client.subscribe("returnAppsList")
                 .handler((externalTask, externalTaskService) -> {
                     try {
-                        //String currentPlatform = externalTask.getVariable("currentPlatform").toString();
-                        //System.out.println(currentPlatform);
                         List<CategoryDto> categories = applicationService.getApplicationsByCategories();
                         applicationService.getApplicationsByCategories();
 
@@ -175,7 +174,7 @@ public class CamundaExternalTaskHandler {
 
                         ObjectValue appsValue = Variables
                                 .objectValue(appsJson)
-                                .serializationDataFormat("application/json") // <-- обязательно!
+                                .serializationDataFormat("application/json")
                                 .create();
 
                         externalTaskService.complete(externalTask, Map.of("appsListJson", appsValue));
@@ -184,6 +183,37 @@ public class CamundaExternalTaskHandler {
                         Map<String, Object> variables = new HashMap<>();
                         variables.put("status", "FAILED");
                         variables.put("error", e.getMessage());
+                        externalTaskService.handleFailure(
+                                externalTask,
+                                e.getMessage(),
+                                e.toString(),
+                                0, // попыток больше не будет
+                                0  // без задержки
+                        );
+                        externalTaskService.complete(externalTask, variables);
+                    }
+                })
+                .open();
+        client.subscribe("showAppInfo")
+                .handler((externalTask, externalTaskService) -> {
+                    try {
+                        Long currentPlatform = Long.valueOf(externalTask.getVariable("selectedAppId").toString());
+                        ApplicationDtoDetailed app = applicationService.getApp(currentPlatform);
+
+                        ObjectMapper mapper = new ObjectMapper();
+                        String appsJson = mapper.writeValueAsString(app);
+
+                        ObjectValue appsValue = Variables
+                                .objectValue(appsJson)
+                                .serializationDataFormat("application/json")
+                                .create();
+
+                        externalTaskService.complete(externalTask, Map.of("appJson", appsValue));
+
+                    } catch (Exception e) {
+                        Map<String, Object> variables = new HashMap<>();
+                        variables.put("showAppStatus", "FAILED");
+                        variables.put("showAppError", e.getMessage());
                         externalTaskService.handleFailure(
                                 externalTask,
                                 e.getMessage(),

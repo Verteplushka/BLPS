@@ -173,6 +173,7 @@ public class ApplicationService {
         return applicationDtos;
     }
 
+    @Transactional
     public ApplicationDtoDetailed getApp(Long id) {
         Application foundApplication = applicationRepository.findById(id).orElse(null);
         if (foundApplication == null) {

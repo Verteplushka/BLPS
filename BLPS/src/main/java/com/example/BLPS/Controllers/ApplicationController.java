@@ -30,7 +30,7 @@ public class ApplicationController {
     private static final String CAMUNDA_URL = "http://localhost:8085/engine-rest/process-definition/key/application_catalog_process/";
 
     @PostMapping("/start")
-    public ResponseEntity<?> startProcess(){
+    public ResponseEntity<?> startProcess() {
         Map<String, Object> result = restMethods.startProcessAndWaitForResult(CAMUNDA_URL, null);
 
         String status = (String) result.getOrDefault("status", "UNKNOWN");
@@ -52,7 +52,8 @@ public class ApplicationController {
         try {
             String json = (String) restMethods.getVariableByProcessId(processInstanceId, "appsListJson");
             ObjectMapper mapper = new ObjectMapper();
-            List<CategoryDto> categories = mapper.readValue(json, new TypeReference<>() {});
+            List<CategoryDto> categories = mapper.readValue(json, new TypeReference<>() {
+            });
 
             return ResponseEntity.ok(categories);
 
@@ -109,11 +110,44 @@ public class ApplicationController {
     }
 
     @GetMapping("/getApp")
-    public ResponseEntity<ApplicationDtoDetailed> getApp(@RequestParam Long id) {
+    public ResponseEntity<?> getApp(@RequestParam Long id, @RequestParam String processInstanceId) {
         try {
-            return ResponseEntity.ok(applicationService.getApp(id));
-        } catch (AppNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            restMethods.completeTaskAndWaitForResult(processInstanceId, Map.of("selectedAction", "clickApp"));
+            Map<String, Object> result = restMethods.completeTaskAndWaitForResult(processInstanceId, Map.of("selectedAppId", id));
+
+            String status = (String) result.getOrDefault("status", "UNKNOWN");
+
+            if ("FAILED".equalsIgnoreCase(status) || "TIMEOUT".equalsIgnoreCase(status)) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of(
+                                "status", status,
+                                "error", result.getOrDefault("error", "Couldn't get app"),
+                                "processInstanceId", processInstanceId
+                        ));
+            }
+
+            try {
+                String json = (String) restMethods.getVariableByProcessId(processInstanceId, "appJson");
+                ObjectMapper mapper = new ObjectMapper();
+                ApplicationDtoDetailed app = mapper.readValue(json, new TypeReference<>() {
+                });
+
+                return ResponseEntity.ok(app);
+
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                        "status", "FAILED",
+                        "error", "Failed to parse apps JSON: " + e.getMessage()
+                ));
+            }
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of(
+                            "status", "FAILED",
+                            "error", e.getMessage(),
+                            "processInstanceId", processInstanceId
+                    ));
         }
     }
 
@@ -124,6 +158,23 @@ public class ApplicationController {
         } catch (AppsNotFoundException e) {
             return ResponseEntity.ok(new NotFoundDto("Приложение с названием \"" + name + "\" не найдено. Вот приложения, которые могут вам понравиться", applicationService.getRecommendedApplications()));
         }
+    }
+
+    @PostMapping("/end")
+    public ResponseEntity<?> endProcess(@RequestParam String processInstanceId) {
+        Map<String, Object> result = restMethods.completeTaskAndWaitForResult(processInstanceId, null);
+
+        String status = (String) result.getOrDefault("status", "UNKNOWN");
+
+        if ("FAILED".equalsIgnoreCase(status) || "TIMEOUT".equalsIgnoreCase(status)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                    "status", status,
+                    "error", result.getOrDefault("error", "Failed to end process"),
+                    "processInstanceId", result.get("processInstanceId")
+            ));
+        }
+
+        return ResponseEntity.ok("Process " + processInstanceId + " ended successfully");
     }
 
     @GetMapping("/getDevs")

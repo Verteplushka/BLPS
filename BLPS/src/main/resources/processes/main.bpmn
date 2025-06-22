@@ -76,6 +76,9 @@
     <bpmn:userTask id="Activity_0kok7ek" name="User clicks on chosen app">
       <bpmn:extensionElements>
         <zeebe:userTask />
+        <camunda:formData>
+          <camunda:formField id="selectedAppId" label="Selected Application ID" type="long" />
+        </camunda:formData>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_177vpdk</bpmn:incoming>
       <bpmn:outgoing>Flow_1enc706</bpmn:outgoing>
@@ -89,7 +92,7 @@
     </bpmn:userTask>
     <bpmn:endEvent id="Event_13betzn">
       <bpmn:incoming>Flow_04nmbl3</bpmn:incoming>
-      <bpmn:incoming>Flow_1mxsgex</bpmn:incoming>
+      <bpmn:incoming>Flow_0eckj70</bpmn:incoming>
     </bpmn:endEvent>
     <bpmn:sequenceFlow id="Flow_1enc706" sourceRef="Activity_0kok7ek" targetRef="Activity_03yu2dt" />
     <bpmn:sequenceFlow id="Flow_04nmbl3" sourceRef="Activity_0l0h04b" targetRef="Event_13betzn" />
@@ -98,16 +101,19 @@
       <bpmn:outgoing>Flow_0j67nrx</bpmn:outgoing>
     </bpmn:serviceTask>
     <bpmn:sequenceFlow id="Flow_0j67nrx" sourceRef="Activity_1od5la2" targetRef="Activity_1orl803" />
-    <bpmn:serviceTask id="Activity_03yu2dt" name="Get app info">
+    <bpmn:serviceTask id="Activity_03yu2dt" name="Show app info" camunda:type="external" camunda:topic="showAppInfo">
       <bpmn:incoming>Flow_1enc706</bpmn:incoming>
       <bpmn:outgoing>Flow_1mfmhvr</bpmn:outgoing>
     </bpmn:serviceTask>
-    <bpmn:sequenceFlow id="Flow_1mfmhvr" sourceRef="Activity_03yu2dt" targetRef="Gateway_1le9kvs" />
-    <bpmn:exclusiveGateway id="Gateway_1le9kvs">
+    <bpmn:sequenceFlow id="Flow_1mfmhvr" sourceRef="Activity_03yu2dt" targetRef="Activity_1mfnbkw" />
+    <bpmn:userTask id="Activity_1mfnbkw" name="User looks throw app info">
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+      </bpmn:extensionElements>
       <bpmn:incoming>Flow_1mfmhvr</bpmn:incoming>
-      <bpmn:outgoing>Flow_1mxsgex</bpmn:outgoing>
-    </bpmn:exclusiveGateway>
-    <bpmn:sequenceFlow id="Flow_1mxsgex" sourceRef="Gateway_1le9kvs" targetRef="Event_13betzn" />
+      <bpmn:outgoing>Flow_0eckj70</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_0eckj70" sourceRef="Activity_1mfnbkw" targetRef="Event_13betzn" />
   </bpmn:process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
     <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="application_catalog_process">
@@ -137,17 +143,6 @@
       <bpmndi:BPMNShape id="Gateway_1qbo4be_di" bpmnElement="Gateway_1qbo4be" isMarkerVisible="true">
         <dc:Bounds x="715" y="215" width="50" height="50" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_1od5la2_di" bpmnElement="Activity_1od5la2">
-        <dc:Bounds x="835" y="620" width="100" height="80" />
-        <bpmndi:BPMNLabel />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Event_13betzn_di" bpmnElement="Event_13betzn">
-        <dc:Bounds x="1372" y="222" width="36" height="36" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_03yu2dt_di" bpmnElement="Activity_03yu2dt">
-        <dc:Bounds x="1090" y="620" width="100" height="80" />
-        <bpmndi:BPMNLabel />
-      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_0kok7ek_di" bpmnElement="Activity_0kok7ek">
         <dc:Bounds x="990" y="80" width="100" height="80" />
         <bpmndi:BPMNLabel />
@@ -155,8 +150,20 @@
       <bpmndi:BPMNShape id="Activity_0l0h04b_di" bpmnElement="Activity_0l0h04b">
         <dc:Bounds x="870" y="200" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Gateway_1le9kvs_di" bpmnElement="Gateway_1le9kvs" isMarkerVisible="true">
-        <dc:Bounds x="1255" y="635" width="50" height="50" />
+      <bpmndi:BPMNShape id="Activity_1od5la2_di" bpmnElement="Activity_1od5la2">
+        <dc:Bounds x="835" y="620" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_03yu2dt_di" bpmnElement="Activity_03yu2dt">
+        <dc:Bounds x="1090" y="620" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_13betzn_di" bpmnElement="Event_13betzn">
+        <dc:Bounds x="1492" y="222" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1mfnbkw_di" bpmnElement="Activity_1mfnbkw">
+        <dc:Bounds x="1460" y="320" width="100" height="80" />
+        <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_0idi4pb_di" bpmnElement="Flow_0idi4pb">
         <di:waypoint x="178" y="240" />
@@ -214,7 +221,7 @@
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_04nmbl3_di" bpmnElement="Flow_04nmbl3">
         <di:waypoint x="970" y="240" />
-        <di:waypoint x="1372" y="240" />
+        <di:waypoint x="1492" y="240" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0j67nrx_di" bpmnElement="Flow_0j67nrx">
         <di:waypoint x="835" y="660" />
@@ -222,12 +229,12 @@
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1mfmhvr_di" bpmnElement="Flow_1mfmhvr">
         <di:waypoint x="1190" y="660" />
-        <di:waypoint x="1255" y="660" />
+        <di:waypoint x="1510" y="660" />
+        <di:waypoint x="1510" y="400" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_1mxsgex_di" bpmnElement="Flow_1mxsgex">
-        <di:waypoint x="1305" y="660" />
-        <di:waypoint x="1390" y="660" />
-        <di:waypoint x="1390" y="258" />
+      <bpmndi:BPMNEdge id="Flow_0eckj70_di" bpmnElement="Flow_0eckj70">
+        <di:waypoint x="1510" y="320" />
+        <di:waypoint x="1510" y="258" />
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
