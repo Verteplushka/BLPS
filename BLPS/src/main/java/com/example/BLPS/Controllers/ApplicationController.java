@@ -29,6 +29,41 @@ public class ApplicationController {
 
     private static final String CAMUNDA_URL = "http://localhost:8085/engine-rest/process-definition/key/application_catalog_process/";
 
+    @PostMapping("/start")
+    public ResponseEntity<?> startProcess(){
+        Map<String, Object> result = restMethods.startProcessAndWaitForResult(CAMUNDA_URL, null);
+
+        String status = (String) result.getOrDefault("status", "UNKNOWN");
+        String processInstanceId = (String) result.get("processInstanceId");
+
+        if ("FAILED".equalsIgnoreCase(status) || "TIMEOUT".equalsIgnoreCase(status)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                    "status", status,
+                    "error", result.getOrDefault("error", "Failed to load categories"),
+                    "processInstanceId", result.get("processInstanceId")
+            ));
+        }
+
+        return ResponseEntity.ok(Map.of("processInstanceId", processInstanceId));
+    }
+
+    @GetMapping("/categories")
+    public ResponseEntity<?> getCategories(@RequestParam String processInstanceId) {
+        try {
+            String json = (String) restMethods.getVariableByProcessId(processInstanceId, "appsListJson");
+            ObjectMapper mapper = new ObjectMapper();
+            List<CategoryDto> categories = mapper.readValue(json, new TypeReference<>() {});
+
+            return ResponseEntity.ok(categories);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "status", "FAILED",
+                    "error", "Failed to parse apps JSON: " + e.getMessage()
+            ));
+        }
+    }
+
     @PostMapping("/changePlatform")
     public ResponseEntity<Map<String, Object>> changePlatform(
             @RequestParam String platform,
@@ -63,37 +98,6 @@ public class ApplicationController {
                             "error", e.getMessage(),
                             "processInstanceId", processInstanceId
                     ));
-        }
-    }
-
-
-    @GetMapping("/categories")
-    public ResponseEntity<?> getCategories(){
-        Map<String, Object> result = restMethods.startProcessAndWaitForResult(CAMUNDA_URL, null);
-
-        String status = (String) result.getOrDefault("status", "UNKNOWN");
-        String processInstanceId = (String) result.get("processInstanceId");
-
-        if ("FAILED".equalsIgnoreCase(status) || "TIMEOUT".equalsIgnoreCase(status)) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
-                    "status", status,
-                    "error", result.getOrDefault("error", "Failed to load categories"),
-                    "processInstanceId", result.get("processInstanceId")
-            ));
-        }
-
-        try {
-            String json = (String) restMethods.getVariableByProcessId(processInstanceId, "appsListJson");
-            ObjectMapper mapper = new ObjectMapper();
-            List<CategoryDto> categories = mapper.readValue(json, new TypeReference<>() {});
-
-            return ResponseEntity.ok(new CamundaCategoryDto(processInstanceId, categories));
-
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
-                    "status", "FAILED",
-                    "error", "Failed to parse apps JSON: " + e.getMessage()
-            ));
         }
     }
 
