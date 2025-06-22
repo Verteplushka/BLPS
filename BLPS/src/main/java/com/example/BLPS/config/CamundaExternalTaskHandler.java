@@ -1,9 +1,6 @@
 package com.example.BLPS.config;
 
-import com.example.BLPS.Dto.ApplicationDto;
-import com.example.BLPS.Dto.ApplicationDtoDetailed;
-import com.example.BLPS.Dto.CategoryDto;
-import com.example.BLPS.Dto.ExactMatchDto;
+import com.example.BLPS.Dto.*;
 import com.example.BLPS.Entities.Status;
 import com.example.BLPS.Service.ApplicationService;
 import com.example.BLPS.camunda.RestMethods;
@@ -313,6 +310,37 @@ public class CamundaExternalTaskHandler {
                         Map<String, Object> variables = new HashMap<>();
                         variables.put("searchAppsWithSimilarNameStatus", "FAILED");
                         variables.put("searchAppsWithSimilarNameError", e.getMessage());
+                        externalTaskService.handleFailure(
+                                externalTask,
+                                e.getMessage(),
+                                e.toString(),
+                                0, // попыток больше не будет
+                                0  // без задержки
+                        );
+                        externalTaskService.complete(externalTask, variables);
+                    }
+                })
+                .open();
+        client.subscribe("showRecommendedApps")
+                .handler((externalTask, externalTaskService) -> {
+                    try {
+                        String name = externalTask.getVariable("searchQuery").toString();
+                        NotFoundDto apps = applicationService.nothingFound(name);
+
+                        ObjectMapper mapper = new ObjectMapper();
+                        String appsJson = mapper.writeValueAsString(apps);
+
+                        ObjectValue appsValue = Variables
+                                .objectValue(appsJson)
+                                .serializationDataFormat("application/json")
+                                .create();
+
+                        externalTaskService.complete(externalTask, Map.of("appsListJson", appsValue));
+
+                    } catch (Exception e) {
+                        Map<String, Object> variables = new HashMap<>();
+                        variables.put("showRecommendedAppsStatus", "FAILED");
+                        variables.put("showRecommendedAppsError", e.getMessage());
                         externalTaskService.handleFailure(
                                 externalTask,
                                 e.getMessage(),

@@ -60,16 +60,23 @@ public class ApplicationController {
                 List<CategoryDto> categories = mapper.readValue(json, new TypeReference<List<CategoryDto>>() {});
                 return ResponseEntity.ok(categories);
 
-            } catch (JsonProcessingException e) {
+            } catch (JsonProcessingException e1) {
                 try {
                     List<ApplicationDto> applications = mapper.readValue(json, new TypeReference<List<ApplicationDto>>() {});
                     return ResponseEntity.ok(applications);
 
-                } catch (JsonProcessingException ex) {
-                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
-                            "status", "FAILED",
-                            "error", "Failed to parse apps JSON as either Categories or Applications: " + ex.getMessage()
-                    ));
+                } catch (JsonProcessingException e2) {
+                    try {
+                        NotFoundDto notFound = mapper.readValue(json, NotFoundDto.class);
+                        return ResponseEntity.ok(notFound);
+
+                    } catch (JsonProcessingException e3) {
+                        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                                "status", "FAILED",
+                                "error", "Failed to parse JSON as Categories, Applications or NotFound",
+                                "details", List.of(e1.getMessage(), e2.getMessage(), e3.getMessage())
+                        ));
+                    }
                 }
             }
 
@@ -185,12 +192,16 @@ public class ApplicationController {
                 ExactMatchDto match = mapper.readValue(json, new TypeReference<ExactMatchDto>() {});
                 return ResponseEntity.ok(match);
             }
+
             json = (String) restMethods.getVariableByProcessId(processInstanceId, "appsListJson");
-            List<ApplicationDto> categories = mapper.readValue(json, new TypeReference<>() {
-            });
+            try {
+                List<ApplicationDto> applications = mapper.readValue(json, new TypeReference<List<ApplicationDto>>() {});
+                return ResponseEntity.ok(applications);
 
-            return ResponseEntity.ok(categories);
-
+            } catch (JsonProcessingException e1) {
+                NotFoundDto notFound = mapper.readValue(json, NotFoundDto.class);
+                return ResponseEntity.ok(notFound);
+            }
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of(

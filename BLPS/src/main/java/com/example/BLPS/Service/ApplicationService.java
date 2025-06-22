@@ -132,10 +132,7 @@ public class ApplicationService {
         Object partial = searchPartialMatch(name);
         if (partial != null) return partial;
 
-        return new NotFoundDto(
-                "Приложение с названием \"" + name + "\" не найдено. Вот приложения, которые могут вам понравиться",
-                getRecommendedApplications()
-        );
+        return nothingFound(name);
     }
 
     @Transactional
@@ -171,6 +168,14 @@ public class ApplicationService {
         }
 
         return null;
+    }
+
+    @Transactional
+    public NotFoundDto nothingFound(String name) {
+        return new NotFoundDto(
+                "Приложение с названием \"" + name + "\" не найдено. Вот приложения, которые могут вам понравиться",
+                getRecommendedApplications()
+        );
     }
 
     private Application findFuzzyMatch(String query) {
