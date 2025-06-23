@@ -29,9 +29,7 @@ public class CamundaExternalTaskHandler {
     @Autowired
     private RatingUpdater ratingUpdater;
 
-    private final JdbcTemplate jdbcTemplate;
     private final ApplicationService applicationService;
-    private final RestMethods restMethods;
 
     private final ExternalTaskClient client = ExternalTaskClient.create()
             .baseUrl("http://localhost:8085/engine-rest")
