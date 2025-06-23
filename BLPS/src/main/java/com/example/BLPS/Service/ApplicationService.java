@@ -373,14 +373,19 @@ public class ApplicationService {
         TransactionStatus status = transactionManager.getTransaction(def);
 
         try {
-            Developer developer = developerService.findById(developerId);
+            // Обновляем статус всех заявок разработчика
+            int updatedCount = jdbcTemplate.update(
 
-            List<Application> apps = applicationRepository.findAllByDeveloper(developer);
+                    "UPDATE applications SET moderation_status = ? WHERE developer_id = ?",
+                    Status.REJECTED.toString(),
+                    developerId
+            );
 
-            for (Application app : apps) {
-                app.setStatus(Status.REJECTED);
-                entityManager.merge(app);
-            }
+            // Логируем результат
+            System.out.printf("Rejected %d applications for developer %d%n", updatedCount, developerId);
+
+            // Если нужно также обновить статус разработчика (бан)
+
 
             transactionManager.commit(status);
         } catch (Exception ex) {
