@@ -211,4 +211,15 @@ public class RestMethods {
 
         return null; // по истечении ожидания переменная не появилась
     }
+
+    public void setParams(String processInstanceId, Map<String, Object> params){
+        params.forEach((key, value) -> {
+            Map<String, Object> var = Map.of("value", value, "type", value instanceof Boolean ? "Boolean" : "String");
+            restTemplate.postForEntity(
+                    "http://localhost:8085/engine-rest/process-instance/" + processInstanceId + "/variables/" + key,
+                    var,
+                    Void.class
+            );
+        });
+    }
 }

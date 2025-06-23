@@ -1,11 +1,10 @@
 package com.example.BLPS.config;
 
-import com.example.BLPS.Dto.ApplicationDto;
-import com.example.BLPS.Dto.ApplicationDtoDetailed;
-import com.example.BLPS.Dto.CategoryDto;
+import com.example.BLPS.Dto.*;
 import com.example.BLPS.Entities.Status;
 import com.example.BLPS.Quartz.RatingUpdater;
 import com.example.BLPS.Service.ApplicationService;
+import com.example.BLPS.camunda.RestMethods;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import jakarta.persistence.EntityManager;
@@ -22,6 +21,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.camunda.bpm.engine.variable.Variables.booleanValue;
+
 @Component
 @RequiredArgsConstructor
 public class CamundaExternalTaskHandler {
@@ -30,6 +31,7 @@ public class CamundaExternalTaskHandler {
 
     private final JdbcTemplate jdbcTemplate;
     private final ApplicationService applicationService;
+    private final RestMethods restMethods;
 
     private final ExternalTaskClient client = ExternalTaskClient.create()
             .baseUrl("http://localhost:8085/engine-rest")
@@ -217,6 +219,132 @@ public class CamundaExternalTaskHandler {
                         Map<String, Object> variables = new HashMap<>();
                         variables.put("showAppStatus", "FAILED");
                         variables.put("showAppError", e.getMessage());
+                        externalTaskService.handleFailure(
+                                externalTask,
+                                e.getMessage(),
+                                e.toString(),
+                                0, // попыток больше не будет
+                                0  // без задержки
+                        );
+                        externalTaskService.complete(externalTask, variables);
+                    }
+                })
+                .open();
+        client.subscribe("searchAppByExactMatch")
+                .handler((externalTask, externalTaskService) -> {
+                    try {
+                        String name = externalTask.getVariable("searchQuery").toString();
+                        ExactMatchDto app = applicationService.searchExactMatch(name);
+
+                        ObjectMapper mapper = new ObjectMapper();
+                        String appsJson = mapper.writeValueAsString(app);
+
+                        ObjectValue appValue = Variables
+                                .objectValue(appsJson)
+                                .serializationDataFormat("application/json")
+                                .create();
+
+                        // restMethods.setParams(externalTask.getProcessInstanceId(), Map.of("foundExactApp", booleanValue(app != null)));
+
+                        externalTaskService.complete(externalTask, Map.of("foundExactApp", booleanValue(app != null), "appJson", appValue));
+
+                    } catch (Exception e) {
+                        Map<String, Object> variables = new HashMap<>();
+                        variables.put("searchAppByExactMatchStatus", "FAILED");
+                        variables.put("searchAppByExactMatchError", e.getMessage());
+                        externalTaskService.handleFailure(
+                                externalTask,
+                                e.getMessage(),
+                                e.toString(),
+                                0, // попыток больше не будет
+                                0  // без задержки
+                        );
+                        externalTaskService.complete(externalTask, variables);
+                    }
+                })
+                .open();
+        client.subscribe("searchAppWithSimilarName")
+                .handler((externalTask, externalTaskService) -> {
+                    try {
+                        String name = externalTask.getVariable("searchQuery").toString();
+                        ExactMatchDto app = applicationService.searchFuzzyMatch(name);
+
+                        ObjectMapper mapper = new ObjectMapper();
+                        String appsJson = mapper.writeValueAsString(app);
+
+                        ObjectValue appValue = Variables
+                                .objectValue(appsJson)
+                                .serializationDataFormat("application/json")
+                                .create();
+
+                        externalTaskService.complete(externalTask, Map.of("appJson", appValue, "foundSimilarApp", app != null));
+
+                    } catch (Exception e) {
+                        Map<String, Object> variables = new HashMap<>();
+                        variables.put("searchAppWithSimilarNameStatus", "FAILED");
+                        variables.put("searchAppWithSimilarNameError", e.getMessage());
+                        externalTaskService.handleFailure(
+                                externalTask,
+                                e.getMessage(),
+                                e.toString(),
+                                0, // попыток больше не будет
+                                0  // без задержки
+                        );
+                        externalTaskService.complete(externalTask, variables);
+                    }
+                })
+                .open();
+        client.subscribe("searchAppsWithSimilarName")
+                .handler((externalTask, externalTaskService) -> {
+                    try {
+                        String name = externalTask.getVariable("searchQuery").toString();
+                        List<ApplicationDto> apps = applicationService.searchPartialMatch(name);
+
+                        ObjectMapper mapper = new ObjectMapper();
+                        String appsJson = mapper.writeValueAsString(apps);
+
+                        ObjectValue appsValue = Variables
+                                .objectValue(appsJson)
+                                .serializationDataFormat("application/json")
+                                .create();
+
+                        externalTaskService.complete(externalTask, Map.of("appsListJson", appsValue, "foundSimilarApps", apps != null));
+
+                    } catch (Exception e) {
+                        Map<String, Object> variables = new HashMap<>();
+                        variables.put("searchAppsWithSimilarNameStatus", "FAILED");
+                        variables.put("searchAppsWithSimilarNameError", e.getMessage());
+                        externalTaskService.handleFailure(
+                                externalTask,
+                                e.getMessage(),
+                                e.toString(),
+                                0, // попыток больше не будет
+                                0  // без задержки
+                        );
+                        externalTaskService.complete(externalTask, variables);
+                    }
+                })
+                .open();
+        client.subscribe("showRecommendedApps")
+                .handler((externalTask, externalTaskService) -> {
+                    try {
+                        String name = externalTask.getVariable("searchQuery").toString();
+                        NotFoundDto apps = applicationService.nothingFound(name);
+
+                        ObjectMapper mapper = new ObjectMapper();
+                        String appsJson = mapper.writeValueAsString(apps);
+
+                        ObjectValue appsValue = Variables
+                                .objectValue(appsJson)
+                                .serializationDataFormat("application/json")
+                                .create();
+
+                        externalTaskService.complete(externalTask, Map.of("appsListJson", appsValue));
+
+                    } catch (Exception e) {
+                        Map<String, Object> variables = new HashMap<>();
+                        variables.put("showRecommendedAppsStatus", "FAILED");
+                        variables.put("showRecommendedAppsError", e.getMessage());
                         externalTaskService.handleFailure(
                                 externalTask,
                                 e.getMessage(),
