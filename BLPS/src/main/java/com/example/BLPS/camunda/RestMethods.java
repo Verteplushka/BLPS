@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 public class RestMethods {
 
     private final RestTemplate restTemplate;
+    private static final String RATING_UPDATE_PROCESS_KEY = "rating_update_process";
     private final String CAMUNDA_BASE_URL = "http://localhost:8085/engine-rest";
 
     public String startProcess(String url, Map<String, Object> variables) {

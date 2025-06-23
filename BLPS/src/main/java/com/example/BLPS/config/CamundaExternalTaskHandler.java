@@ -4,6 +4,7 @@ import com.example.BLPS.Dto.ApplicationDto;
 import com.example.BLPS.Dto.ApplicationDtoDetailed;
 import com.example.BLPS.Dto.CategoryDto;
 import com.example.BLPS.Entities.Status;
+import com.example.BLPS.Quartz.RatingUpdater;
 import com.example.BLPS.Service.ApplicationService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
@@ -24,6 +25,8 @@ import java.util.Map;
 @Component
 @RequiredArgsConstructor
 public class CamundaExternalTaskHandler {
+    @Autowired
+    private RatingUpdater ratingUpdater;
 
     private final JdbcTemplate jdbcTemplate;
     private final ApplicationService applicationService;
@@ -225,5 +228,23 @@ public class CamundaExternalTaskHandler {
                     }
                 })
                 .open();
+        client.subscribe("updateRatings")
+                .lockDuration(1000)
+                .handler((externalTask, externalTaskService) -> {
+                    try {
+                        ratingUpdater.updateRatings();
+                        externalTaskService.complete(externalTask);
+                    } catch (Exception e) {
+                        externalTaskService.handleFailure(
+                                externalTask,
+                                "Failed to update ratings: " + e.getMessage(),
+                                e.toString(),
+                                0,
+                                1000
+                        );
+                    }
+                })
+                .open();
+
     }
 }

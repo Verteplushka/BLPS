@@ -25,7 +25,7 @@ public class RatingUpdater {
     @Transactional
     public void updateRatings() {
         try {
-            System.out.println("⏰ [Scheduled Quartz Task] Updating app ratings at " + java.time.LocalDateTime.now());
+            System.out.println("⏰ [Camunda Task]Updating app ratings at " + java.time.LocalDateTime.now());
             List<Map<String, Object>> apps = jdbcTemplate.queryForList("SELECT id, rating FROM applications");
 
             // Возможные изменения и веса (чем ближе к 0 — тем выше шанс)
@@ -69,7 +69,7 @@ public class RatingUpdater {
                 jdbcTemplate.update("UPDATE applications SET rating = ? WHERE id = ?", newRating, id);
             }
 
-            System.out.println("✅ Daily rating update completed");
+            System.out.println("✅ Rating update completed via Camunda");
 
             // Коммитим транзакцию
             // transactionManager.commit(status);
