@@ -5,6 +5,7 @@ import com.example.BLPS.Entities.Status;
 import com.example.BLPS.Quartz.RatingUpdater;
 import com.example.BLPS.Service.ApplicationService;
 import com.example.BLPS.Service.DeveloperService;
+import com.example.BLPS.Utils.UserXmlReader;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +30,6 @@ public class CamundaExternalTaskHandler {
     private RatingUpdater ratingUpdater;
 
     private final ApplicationService applicationService;
-    private final DeveloperService developerService;
 
     private final ExternalTaskClient client = ExternalTaskClient.create()
             .baseUrl("http://localhost:8085/engine-rest")
@@ -374,8 +374,8 @@ public class CamundaExternalTaskHandler {
         client.subscribe("showDevelopersApps")
                 .handler((externalTask, externalTaskService) -> {
                     try {
-                        int id = Integer.parseInt(externalTask.getVariable("developerId").toString());
-                        List<DeveloperApplicationDto> apps = applicationService.getAllApplicationsForDeveloperById(id);
+                        String username = externalTask.getVariable("username").toString();
+                        List<DeveloperApplicationDto> apps = applicationService.getAllApplicationsForDeveloperByName(username);
 
                         ObjectMapper mapper = new ObjectMapper();
                         String appsJson = mapper.writeValueAsString(apps);
@@ -389,8 +389,8 @@ public class CamundaExternalTaskHandler {
 
                     } catch (Exception e) {
                         Map<String, Object> variables = new HashMap<>();
-                        variables.put("showRecommendedAppsStatus", "FAILED");
-                        variables.put("showRecommendedAppsError", e.getMessage());
+                        variables.put("showDevelopersAppsStatus", "FAILED");
+                        variables.put("showDevelopersAppsError", e.getMessage());
                         externalTaskService.handleFailure(
                                 externalTask,
                                 e.getMessage(),
@@ -405,6 +405,7 @@ public class CamundaExternalTaskHandler {
         client.subscribe("saveApp")
                 .handler((externalTask, externalTaskService) -> {
                     try {
+                        String username = externalTask.getVariable("username").toString();
                         CreateApplicationDto dto = new CreateApplicationDto();
 
                         dto.setName((String) externalTask.getVariable("name"));
@@ -433,7 +434,7 @@ public class CamundaExternalTaskHandler {
                         dto.setTagIds(tagIds);
 
                         // Пример логики: сохраняем приложение
-                        ApplicationDtoDetailed savedApp = applicationService.createApplication(dto);
+                        ApplicationDtoDetailed savedApp = applicationService.createApplication(username, dto);
 
                         externalTaskService.complete(externalTask, Map.of("saveAppStatus", "COMPLETED", "savedApp", savedApp));
 
@@ -452,34 +453,53 @@ public class CamundaExternalTaskHandler {
                     }
                 })
                 .open();
-
         client.subscribe("updateApp")
                 .handler((externalTask, externalTaskService) -> {
                     try {
-                        int id = Integer.parseInt(externalTask.getVariable("developerId").toString());
+                        String username = externalTask.getVariable("username").toString();
+                        Long appId = Long.valueOf(externalTask.getVariable("appId").toString());
+                        CreateApplicationDto dto = new CreateApplicationDto();
 
-                        List<DeveloperApplicationDto> apps = applicationService.getAllApplicationsForDeveloperById(id);
+                        dto.setName((String) externalTask.getVariable("name"));
+                        dto.setDescription((String) externalTask.getVariable("description"));
+                        dto.setPrice(Float.parseFloat(externalTask.getVariable("price").toString()));
+                        dto.setImageUrl((String) externalTask.getVariable("imageUrl"));
+                        dto.setHasPaidContent(Boolean.parseBoolean(externalTask.getVariable("hasPaidContent").toString()));
+                        dto.setHasAds(Boolean.parseBoolean(externalTask.getVariable("hasAds").toString()));
+                        dto.setIsEditorsChoice(Boolean.parseBoolean(externalTask.getVariable("isEditorsChoice").toString()));
+                        dto.setAgeLimit(Integer.parseInt(externalTask.getVariable("ageLimit").toString()));
+                        dto.setIsRecommended(Boolean.parseBoolean(externalTask.getVariable("isRecommended").toString()));
 
-                        ObjectMapper mapper = new ObjectMapper();
-                        String appsJson = mapper.writeValueAsString(apps);
+                        // Преобразуем comma-separated строку в список Integer
+                        String platformsRaw = (String) externalTask.getVariable("platformIds");
+                        List<Integer> platformIds = Arrays.stream(platformsRaw.split(","))
+                                .map(String::trim)
+                                .map(Integer::parseInt)
+                                .collect(Collectors.toList());
+                        dto.setPlatformIds(platformIds);
 
-                        ObjectValue appsValue = Variables
-                                .objectValue(appsJson)
-                                .serializationDataFormat("application/json")
-                                .create();
+                        String tagsRaw = (String) externalTask.getVariable("tagIds");
+                        List<Integer> tagIds = Arrays.stream(tagsRaw.split(","))
+                                .map(String::trim)
+                                .map(Integer::parseInt)
+                                .collect(Collectors.toList());
+                        dto.setTagIds(tagIds);
 
-                        externalTaskService.complete(externalTask, Map.of("devAppsListJson", appsValue));
+                        // Пример логики: сохраняем приложение
+                        ApplicationDtoDetailed updatedApp = applicationService.updateApplication(username, appId, dto);
+
+                        externalTaskService.complete(externalTask, Map.of("saveAppStatus", "COMPLETED", "updatedApp", updatedApp));
 
                     } catch (Exception e) {
                         Map<String, Object> variables = new HashMap<>();
-                        variables.put("showRecommendedAppsStatus", "FAILED");
-                        variables.put("showRecommendedAppsError", e.getMessage());
+                        variables.put("saveAppStatus", "FAILED");
+                        variables.put("saveAppError", e.getMessage());
                         externalTaskService.handleFailure(
                                 externalTask,
                                 e.getMessage(),
                                 e.toString(),
-                                0, // попыток больше не будет
-                                0  // без задержки
+                                0,
+                                0
                         );
                         externalTaskService.complete(externalTask, variables);
                     }
@@ -488,8 +508,9 @@ public class CamundaExternalTaskHandler {
         client.subscribe("deleteApp")
                 .handler((externalTask, externalTaskService) -> {
                     try {
+                        String username = externalTask.getVariable("username").toString();
                         Long appId = Long.valueOf(externalTask.getVariable("appId").toString());
-                        applicationService.deleteApplicationById(appId);
+                        applicationService.deleteApplicationByIdAndDevName(appId, username);
 
                         externalTaskService.complete(externalTask, Map.of("deleteAppResult", "App with id " + appId + " has been successfully deleted"));
 

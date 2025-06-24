@@ -26,18 +26,14 @@ public class DeveloperController {
 
     private final ApplicationService applicationService;
     private final RestMethods restMethods;
-    private final String xmlFilePath = "src/main/resources/users.xml";
-
     private static final String CAMUNDA_URL = "http://localhost:8085/engine-rest/process-definition/key/developer_process/";
 
     @PostMapping("/start")
     public ResponseEntity<?> startProcess() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
-        UserXmlReader reader = new UserXmlReader(xmlFilePath);
-        int userId = reader.getUserIdByUsername(username);
 
-        Map<String, Object> result = restMethods.startProcessAndWaitForResult(CAMUNDA_URL, Map.of("developerId", userId));
+        Map<String, Object> result = restMethods.startProcessAndWaitForResult(CAMUNDA_URL, Map.of("username", username));
 
         String status = (String) result.getOrDefault("status", "UNKNOWN");
         String processInstanceId = (String) result.get("processInstanceId");
