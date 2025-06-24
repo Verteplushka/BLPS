@@ -42,7 +42,7 @@ public class ApplicationController {
         if ("FAILED".equalsIgnoreCase(status) || "TIMEOUT".equalsIgnoreCase(status)) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
                     "status", status,
-                    "error", result.getOrDefault("error", "Failed to load categories"),
+                    "error", result.getOrDefault("error", "Failed to start process"),
                     "processInstanceId", result.get("processInstanceId")
             ));
         }

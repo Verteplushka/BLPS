@@ -3,6 +3,7 @@ package com.example.BLPS.Mapper;
 import com.example.BLPS.Dto.ApplicationDto;
 import com.example.BLPS.Dto.ApplicationDtoDetailed;
 import com.example.BLPS.Dto.CreateApplicationDto;
+import com.example.BLPS.Dto.DeveloperApplicationDto;
 import com.example.BLPS.Entities.Application;
 import com.example.BLPS.Entities.Developer;
 import com.example.BLPS.Entities.Platform;
@@ -26,6 +27,38 @@ public class ApplicationMapper {
                 .collect(Collectors.toList());
 
         return new ApplicationDtoDetailed(
+                application.getName(),
+                application.getDeveloper(),
+                application.getDescription(),
+                application.getRating(),
+                application.getDownloads(),
+                application.getImageUrl(),
+                application.getHasPaidContent(),
+                application.getHasAds(),
+                application.getIsEditorsChoice(),
+                application.getAgeLimit(),
+                application.getIsRecommended(),
+                platforms,
+                tags,
+                application.getStatus()
+        );
+    }
+
+    public static DeveloperApplicationDto toDeveloperApplicationDto(Application application) {
+        if (application == null) {
+            return null;
+        }
+
+        List<String> platforms = application.getPlatforms().stream()
+                .map(Platform::getName)
+                .collect(Collectors.toList());
+
+        List<String> tags = application.getTags().stream()
+                .map(Tag::getName)
+                .collect(Collectors.toList());
+
+        return new DeveloperApplicationDto(
+                application.getId(),
                 application.getName(),
                 application.getDeveloper(),
                 application.getDescription(),

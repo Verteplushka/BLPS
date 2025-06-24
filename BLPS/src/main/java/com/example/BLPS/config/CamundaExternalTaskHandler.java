@@ -4,22 +4,21 @@ import com.example.BLPS.Dto.*;
 import com.example.BLPS.Entities.Status;
 import com.example.BLPS.Quartz.RatingUpdater;
 import com.example.BLPS.Service.ApplicationService;
-import com.example.BLPS.camunda.RestMethods;
+import com.example.BLPS.Service.DeveloperService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
-import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.camunda.bpm.client.ExternalTaskClient;
 import org.camunda.bpm.engine.variable.Variables;
 import org.camunda.bpm.engine.variable.value.ObjectValue;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.camunda.bpm.engine.variable.Variables.booleanValue;
 
@@ -30,6 +29,7 @@ public class CamundaExternalTaskHandler {
     private RatingUpdater ratingUpdater;
 
     private final ApplicationService applicationService;
+    private final DeveloperService developerService;
 
     private final ExternalTaskClient client = ExternalTaskClient.create()
             .baseUrl("http://localhost:8085/engine-rest")
@@ -371,6 +371,142 @@ public class CamundaExternalTaskHandler {
                     }
                 })
                 .open();
+        client.subscribe("showDevelopersApps")
+                .handler((externalTask, externalTaskService) -> {
+                    try {
+                        int id = Integer.parseInt(externalTask.getVariable("developerId").toString());
+                        List<DeveloperApplicationDto> apps = applicationService.getAllApplicationsForDeveloperById(id);
 
+                        ObjectMapper mapper = new ObjectMapper();
+                        String appsJson = mapper.writeValueAsString(apps);
+
+                        ObjectValue appsValue = Variables
+                                .objectValue(appsJson)
+                                .serializationDataFormat("application/json")
+                                .create();
+
+                        externalTaskService.complete(externalTask, Map.of("devAppsListJson", appsValue));
+
+                    } catch (Exception e) {
+                        Map<String, Object> variables = new HashMap<>();
+                        variables.put("showRecommendedAppsStatus", "FAILED");
+                        variables.put("showRecommendedAppsError", e.getMessage());
+                        externalTaskService.handleFailure(
+                                externalTask,
+                                e.getMessage(),
+                                e.toString(),
+                                0, // попыток больше не будет
+                                0  // без задержки
+                        );
+                        externalTaskService.complete(externalTask, variables);
+                    }
+                })
+                .open();
+        client.subscribe("saveApp")
+                .handler((externalTask, externalTaskService) -> {
+                    try {
+                        CreateApplicationDto dto = new CreateApplicationDto();
+
+                        dto.setName((String) externalTask.getVariable("name"));
+                        dto.setDescription((String) externalTask.getVariable("description"));
+                        dto.setPrice(Float.parseFloat(externalTask.getVariable("price").toString()));
+                        dto.setImageUrl((String) externalTask.getVariable("imageUrl"));
+                        dto.setHasPaidContent(Boolean.parseBoolean(externalTask.getVariable("hasPaidContent").toString()));
+                        dto.setHasAds(Boolean.parseBoolean(externalTask.getVariable("hasAds").toString()));
+                        dto.setIsEditorsChoice(Boolean.parseBoolean(externalTask.getVariable("isEditorsChoice").toString()));
+                        dto.setAgeLimit(Integer.parseInt(externalTask.getVariable("ageLimit").toString()));
+                        dto.setIsRecommended(Boolean.parseBoolean(externalTask.getVariable("isRecommended").toString()));
+
+                        // Преобразуем comma-separated строку в список Integer
+                        String platformsRaw = (String) externalTask.getVariable("platformIds");
+                        List<Integer> platformIds = Arrays.stream(platformsRaw.split(","))
+                                .map(String::trim)
+                                .map(Integer::parseInt)
+                                .collect(Collectors.toList());
+                        dto.setPlatformIds(platformIds);
+
+                        String tagsRaw = (String) externalTask.getVariable("tagIds");
+                        List<Integer> tagIds = Arrays.stream(tagsRaw.split(","))
+                                .map(String::trim)
+                                .map(Integer::parseInt)
+                                .collect(Collectors.toList());
+                        dto.setTagIds(tagIds);
+
+                        // Пример логики: сохраняем приложение
+                        ApplicationDtoDetailed savedApp = applicationService.createApplication(dto);
+
+                        externalTaskService.complete(externalTask, Map.of("saveAppStatus", "COMPLETED", "savedApp", savedApp));
+
+                    } catch (Exception e) {
+                        Map<String, Object> variables = new HashMap<>();
+                        variables.put("saveAppStatus", "FAILED");
+                        variables.put("saveAppError", e.getMessage());
+                        externalTaskService.handleFailure(
+                                externalTask,
+                                e.getMessage(),
+                                e.toString(),
+                                0,
+                                0
+                        );
+                        externalTaskService.complete(externalTask, variables);
+                    }
+                })
+                .open();
+
+        client.subscribe("updateApp")
+                .handler((externalTask, externalTaskService) -> {
+                    try {
+                        int id = Integer.parseInt(externalTask.getVariable("developerId").toString());
+
+                        List<DeveloperApplicationDto> apps = applicationService.getAllApplicationsForDeveloperById(id);
+
+                        ObjectMapper mapper = new ObjectMapper();
+                        String appsJson = mapper.writeValueAsString(apps);
+
+                        ObjectValue appsValue = Variables
+                                .objectValue(appsJson)
+                                .serializationDataFormat("application/json")
+                                .create();
+
+                        externalTaskService.complete(externalTask, Map.of("devAppsListJson", appsValue));
+
+                    } catch (Exception e) {
+                        Map<String, Object> variables = new HashMap<>();
+                        variables.put("showRecommendedAppsStatus", "FAILED");
+                        variables.put("showRecommendedAppsError", e.getMessage());
+                        externalTaskService.handleFailure(
+                                externalTask,
+                                e.getMessage(),
+                                e.toString(),
+                                0, // попыток больше не будет
+                                0  // без задержки
+                        );
+                        externalTaskService.complete(externalTask, variables);
+                    }
+                })
+                .open();
+        client.subscribe("deleteApp")
+                .handler((externalTask, externalTaskService) -> {
+                    try {
+                        Long appId = Long.valueOf(externalTask.getVariable("appId").toString());
+                        applicationService.deleteApplicationById(appId);
+
+                        externalTaskService.complete(externalTask, Map.of("deleteAppResult", "App with id " + appId + " has been successfully deleted"));
+
+                    } catch (Exception e) {
+                        Map<String, Object> variables = new HashMap<>();
+                        variables.put("deleteAppStatus", "FAILED");
+                        variables.put("deleteAppError", e.getMessage());
+                        externalTaskService.handleFailure(
+                                externalTask,
+                                e.getMessage(),
+                                e.toString(),
+                                0, // попыток больше не будет
+                                0  // без задержки
+                        );
+                        externalTaskService.complete(externalTask, variables);
+                    }
+                })
+                .open();
     }
 }

@@ -230,7 +230,22 @@ public class ApplicationService {
         }
     }
 
+    @Transactional
+    public List<DeveloperApplicationDto> getAllApplicationsForDeveloperById(int userId) {
+        try {
+            Developer developer = developerService.findByUserId(userId);
+            List<Application> applications = applicationRepository.findAllByDeveloper(developer);
 
+            return applications.stream()
+                    .map(ApplicationMapper::toDeveloperApplicationDto)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to fetch developer's applications: " + e.getMessage());
+        }
+    }
+
+
+    @Transactional
     public ApplicationDtoDetailed createApplication(CreateApplicationDto request) {
         TransactionDefinition def = new DefaultTransactionDefinition();
         TransactionStatus status = transactionManager.getTransaction(def);
