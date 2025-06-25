@@ -269,7 +269,7 @@ public class ApplicationService {
             application.setStatus(Status.AUTO_MODERATION);
             Application saved = applicationRepository.save(application);
 
-            jiraAdapterClient.createModerationTask(saved.getId(), saved.getName(), saved.getDeveloper().getName());
+            // jiraAdapterClient.createModerationTask(saved.getId(), saved.getName(), saved.getDeveloper().getName());
 
             transactionManager.commit(status);
             return ApplicationMapper.toDeveloperApplicationDto(saved);
@@ -314,7 +314,7 @@ public class ApplicationService {
 
             Application saved = applicationRepository.save(app);
 
-            jiraAdapterClient.createModerationTask(saved.getId(), saved.getName(), saved.getDeveloper().getName());
+            // jiraAdapterClient.createModerationTask(saved.getId(), saved.getName(), saved.getDeveloper().getName());
 
             mqttMessageSender.sendMessage(moderationQueueName, saved.getId().toString());
 
