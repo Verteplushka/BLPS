@@ -252,8 +252,9 @@ public class ApplicationService {
     }
 
 
+
     @Transactional
-    public ApplicationDtoDetailed createApplication(String username, CreateApplicationDto request) {
+    public DeveloperApplicationDto createApplication(String username, CreateApplicationDto request) {
         TransactionDefinition def = new DefaultTransactionDefinition();
         TransactionStatus status = transactionManager.getTransaction(def);
 
@@ -272,10 +273,8 @@ public class ApplicationService {
 
             jiraAdapterClient.createModerationTask(saved.getId(), saved.getName(), saved.getDeveloper().getName());
 
-            mqttMessageSender.sendMessage(moderationQueueName, saved.getId().toString());
-
             transactionManager.commit(status);
-            return ApplicationMapper.toDtoDetailed(saved);
+            return ApplicationMapper.toDeveloperApplicationDto(saved);
         } catch (Exception ex) {
             transactionManager.rollback(status);
             ex.printStackTrace();

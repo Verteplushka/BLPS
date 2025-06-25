@@ -28,6 +28,8 @@ public class CamundaExternalTaskHandler {
     private RatingUpdater ratingUpdater;
 
     private final ApplicationService applicationService;
+    private final MqttMessageSender mqttMessageSender;
+    private final String moderationQueueName = "moderation-queue";
 
     private final ExternalTaskClient client = ExternalTaskClient.create()
             .baseUrl("http://localhost:8085/engine-rest")
@@ -563,9 +565,9 @@ public class CamundaExternalTaskHandler {
                         dto.setTagIds(tagIds);
 
                         // Пример логики: сохраняем приложение
-                        ApplicationDtoDetailed savedApp = applicationService.createApplication(username, dto);
+                        DeveloperApplicationDto savedApp = applicationService.createApplication(username, dto);
 
-                        externalTaskService.complete(externalTask, Map.of("saveAppStatus", "COMPLETED", "savedApp", savedApp));
+                        externalTaskService.complete(externalTask, Map.of("saveAppStatus", "COMPLETED", "appId", savedApp.getId(), "savedApp", savedApp));
 
                     } catch (Exception e) {
                         Map<String, Object> variables = new HashMap<>();
@@ -647,6 +649,27 @@ public class CamundaExternalTaskHandler {
                         Map<String, Object> variables = new HashMap<>();
                         variables.put("deleteAppStatus", "FAILED");
                         variables.put("deleteAppError", e.getMessage());
+                        externalTaskService.handleFailure(
+                                externalTask,
+                                e.getMessage(),
+                                e.toString(),
+                                0, // попыток больше не будет
+                                0  // без задержки
+                        );
+                        externalTaskService.complete(externalTask, variables);
+                    }
+                })
+                .open();
+        client.subscribe("createModerationTask")
+                .handler((externalTask, externalTaskService) -> {
+                    try {
+                        String appId = externalTask.getVariable("appId").toString();
+                        mqttMessageSender.sendMessage(moderationQueueName, appId);
+                        externalTaskService.complete(externalTask, Map.of("createModerationTaskStatus", "SUCCESS", "createModerationTaskMessage", "Moderation message has been send"));
+                    } catch (Exception e) {
+                        Map<String, Object> variables = new HashMap<>();
+                        variables.put("createModerationTaskStatus", "FAILED");
+                        variables.put("createModerationTaskMessage", e.getMessage());
                         externalTaskService.handleFailure(
                                 externalTask,
                                 e.getMessage(),
