@@ -1,6 +1,8 @@
 package com.example.BLPS.Controllers;
 
 import com.example.BLPS.Dto.ApplicationDtoDetailed;
+import com.example.BLPS.Dto.BanRequestDto;
+import com.example.BLPS.Dto.UnbanRequestDto;
 import com.example.BLPS.Entities.Status;
 import com.example.BLPS.Exceptions.ApplicationNotPendingModerationException;
 import com.example.BLPS.Service.ApplicationService;
@@ -98,9 +100,19 @@ public class AdminController {
         ));
     }
 
-    @PostMapping("/ban/{developerId}")
-    public ResponseEntity<Map<String, Object>> banDeveloper(@PathVariable Integer developerId) {
-        Map<String, Object> result = restMethods.startProcessAndWaitForResult(CAMUNDA_URL, Map.of("developerId", developerId, "action", "ban"));
+    @PostMapping("/ban")
+    public ResponseEntity<Map<String, Object>> banDeveloper(
+            @RequestBody BanRequestDto banRequest) {
+
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("developerId", banRequest.getDeveloperId());
+        variables.put("action", "ban");
+        variables.put("banReason", banRequest.getReason());
+
+        Map<String, Object> result = restMethods.startProcessAndWaitForResult(
+                CAMUNDA_URL,
+                variables
+        );
 
         String status = (String) result.getOrDefault("status", "UNKNOWN");
 
@@ -125,9 +137,49 @@ public class AdminController {
         return ResponseEntity.ok(Map.of(
                 "status", "BAN",
                 "message", result.getOrDefault("banMessage", "Developer successfully banned"),
+                "processInstanceId", result.get("processInstanceId"),
+                "reason", banRequest.getReason()
+        ));
+    }
+    @PostMapping("/unban")
+    public ResponseEntity<Map<String, Object>> unbanDeveloper(@RequestBody UnbanRequestDto unbanRequest) {
+
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("developerId", unbanRequest.getDeveloperId());
+        variables.put("action", "unban");
+        variables.put("unbanMessage", unbanRequest.getMessage() != null ? unbanRequest.getMessage() : "Developer unbanned");
+
+        Map<String, Object> result = restMethods.startProcessAndWaitForResult(CAMUNDA_URL, variables);
+
+        String status = (String) result.getOrDefault("status", "UNKNOWN");
+
+        if ("FAILED".equalsIgnoreCase(status)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                    "status", status,
+                    "error", result.getOrDefault("error", "Unknown error"),
+                    "processInstanceId", result.get("processInstanceId")
+            ));
+        }
+
+        if ("TIMEOUT".equalsIgnoreCase(status)) {
+            return ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).body(Map.of(
+                    "status", "TIMEOUT",
+                    "error", result.get("error"),
+                    "processInstanceId", result.get("processInstanceId")
+            ));
+        }
+
+        return ResponseEntity.ok(Map.of(
+                "status", "UNBAN",
+                "message", result.getOrDefault("unbanMessage", "Developer successfully unbanned"),
                 "processInstanceId", result.get("processInstanceId")
         ));
     }
+
+
+
+
+
 
     @ExceptionHandler(ApplicationNotPendingModerationException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)

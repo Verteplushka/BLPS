@@ -24,6 +24,7 @@ import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -236,6 +237,7 @@ public class ApplicationService {
         TransactionStatus status = transactionManager.getTransaction(def);
 
         try {
+
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             String username = authentication.getName();
             UserXmlReader reader = new UserXmlReader(xmlFilePath);
@@ -368,7 +370,7 @@ public class ApplicationService {
 
 
 
-    public void rejectAllApplicationsByDeveloper(Integer developerId) {
+    public void rejectAllApplicationsByDeveloper(Integer developerId, String reason) {
         TransactionDefinition def = new DefaultTransactionDefinition();
         TransactionStatus status = transactionManager.getTransaction(def);
 
@@ -380,6 +382,25 @@ public class ApplicationService {
                     Status.REJECTED.toString(),
                     developerId
             );
+            // Пытаемся обновить запись о бане, если она уже существует
+            int updatedBan = jdbcTemplate.update(
+                    "UPDATE developer_bans SET reason = ?, ban_date = ?, active = true WHERE developer_id = ?",
+                    reason,
+                    LocalDateTime.now(),
+                    developerId
+            );
+
+            // Если обновление не затронуло ни одной строки — вставляем новую
+            if (updatedBan == 0) {
+                jdbcTemplate.update(
+                        "INSERT INTO developer_bans (developer_id, reason, ban_date, active) VALUES (?, ?, ?, ?)",
+                        developerId,
+                        reason,
+                        LocalDateTime.now(),
+                        true
+                );
+            }
+
 
             // Логируем результат
             System.out.printf("Rejected %d applications for developer %d%n", updatedCount, developerId);
@@ -393,4 +414,55 @@ public class ApplicationService {
             throw new RuntimeException("Couldn't ban developer: " + ex.getMessage(), ex);
         }
     }
+    public void unbanDeveloper(Integer developerId, String reason) {
+        TransactionDefinition def = new DefaultTransactionDefinition();
+        TransactionStatus status = transactionManager.getTransaction(def);
+
+        try {
+            // Проверка: существует ли разработчик
+            Integer count = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM developers WHERE id = ?",
+                    Integer.class,
+                    developerId
+            );
+            if (count == null || count == 0) {
+                throw new IllegalArgumentException("Developer with ID " + developerId + " does not exist.");
+            }
+
+            // Проверка: есть ли активный бан
+            Integer activeBanCount = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM developer_bans WHERE developer_id = ? AND active = true",
+                    Integer.class,
+                    developerId
+            );
+            if (activeBanCount == null || activeBanCount == 0) {
+                throw new IllegalStateException("Developer with ID " + developerId + " is not currently banned.");
+            }
+
+            // 1. Одобряем все заявки разработчика
+            int updatedCount = jdbcTemplate.update(
+                    "UPDATE applications SET moderation_status = ? WHERE developer_id = ?",
+                    Status.APPROVED.toString(),
+                    developerId
+            );
+
+            // 2. Обновляем запись о бане: active = false и новое сообщение reason
+            jdbcTemplate.update(
+                    "UPDATE developer_bans SET active = false, reason = ? WHERE developer_id = ?",
+                    reason,
+                    developerId
+            );
+
+            // 3. Лог
+            System.out.printf("Unbanned developer %d, approved %d applications. Reason: %s%n", developerId, updatedCount, reason);
+
+            transactionManager.commit(status);
+        } catch (Exception ex) {
+            transactionManager.rollback(status);
+            throw new RuntimeException("Couldn't unban developer: " + ex.getMessage(), ex);
+        }
+    }
+
+
+
 }

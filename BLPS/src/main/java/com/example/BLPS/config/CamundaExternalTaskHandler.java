@@ -71,11 +71,12 @@ public class CamundaExternalTaskHandler {
                     Map<String, Object> variables = new HashMap<>();
                     try {
                         Integer devId = Integer.valueOf(externalTask.getVariable("developerId").toString());
-                        applicationService.rejectAllApplicationsByDeveloper(devId);
+                        String reason = (String) externalTask.getVariable("banReason");
+
+                        applicationService.rejectAllApplicationsByDeveloper(devId, reason);
 
                         variables.put("banStatus", "SUCCESS");
-                        variables.put("banMessage", "Dev banned successfully");
-
+                        variables.put("banMessage", "Developer banned successfully");
                     } catch (Exception e) {
                         variables.put("banStatus", "FAILED");
                         variables.put("banError", e.getMessage());
@@ -83,11 +84,10 @@ public class CamundaExternalTaskHandler {
                                 externalTask,
                                 e.getMessage(),
                                 e.toString(),
-                                0, // попыток больше не будет
-                                0  // без задержки
+                                0,
+                                0
                         );
                     }
-
                     externalTaskService.complete(externalTask, variables);
                 })
                 .open();
@@ -117,6 +117,38 @@ public class CamundaExternalTaskHandler {
                     externalTaskService.complete(externalTask, variables);
                 })
                 .open();
+        client.subscribe("unbanDeveloper")
+                .lockDuration(1000)
+                .handler((externalTask, externalTaskService) -> {
+                    Map<String, Object> variables = new HashMap<>();
+                    try {
+                        Integer devId = Integer.valueOf(externalTask.getVariable("developerId").toString());
+                        String reason = (String) externalTask.getVariable("unbanMessage");
+
+                        applicationService.unbanDeveloper(devId, reason);
+
+                        variables.put("status", "SUCCESS");
+                        variables.put("unbanMessage", "Developer successfully unbanned");
+                    } catch (Exception e) {
+                        variables.put("status", "FAILED"); // контроллер ожидает ключ "status"
+                        variables.put("error", e.getMessage()); // и "error"
+                        externalTaskService.handleFailure(
+                                externalTask,
+                                e.getMessage(),
+                                e.toString(),
+                                0,
+                                0
+                        );
+
+                    }
+
+                    externalTaskService.complete(externalTask, variables);
+                })
+                .open();
+
+
+
+
         client.subscribe("changePlatform")
                 .handler((externalTask, externalTaskService) -> {
                     Map<String, Object> variables = new HashMap<>();
