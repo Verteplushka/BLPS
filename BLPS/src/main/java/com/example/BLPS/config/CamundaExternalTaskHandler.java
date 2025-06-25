@@ -663,23 +663,23 @@ public class CamundaExternalTaskHandler {
                                 .collect(Collectors.toList());
                         dto.setTagIds(tagIds);
 
-                        // Пример логики: сохраняем приложение
+                        // Обновляем приложение
                         ApplicationDtoDetailed updatedApp = applicationService.updateApplication(username, appId, dto);
 
-                        externalTaskService.complete(externalTask, Map.of("saveAppStatus", "COMPLETED", "updatedApp", updatedApp));
+                        externalTaskService.complete(externalTask,
+                                Map.of(
+                                        "updateAppStatus", "SUCCESS",
+                                        "updatedApp", updatedApp
+                                ));
 
-                    } catch (Exception e) {
-                        Map<String, Object> variables = new HashMap<>();
-                        variables.put("saveAppStatus", "FAILED");
-                        variables.put("saveAppError", e.getMessage());
-                        externalTaskService.handleFailure(
-                                externalTask,
-                                e.getMessage(),
-                                e.toString(),
-                                0,
-                                0
-                        );
-                        externalTaskService.complete(externalTask, variables);
+                    }
+                     catch (Exception e) {
+                         // Обработка случая, когда приложение не найдено
+                         externalTaskService.handleBpmnError(
+                                 externalTask,
+                                 "APP_DOES_NOT_EXIST",
+                                 "Application with this id does not exist"
+                         );
                     }
                 })
                 .open();
@@ -690,20 +690,19 @@ public class CamundaExternalTaskHandler {
                         Long appId = Long.valueOf(externalTask.getVariable("appId").toString());
                         applicationService.deleteApplicationByIdAndDevName(appId, username);
 
-                        externalTaskService.complete(externalTask, Map.of("deleteAppResult", "App with id " + appId + " has been successfully deleted"));
+                        externalTaskService.complete(externalTask,
+                                Map.of(
+                                        "deleteAppStatus", "SUCCESS",
+                                        "deleteAppResult", "App with id " + appId + " has been successfully deleted"
+                                ));
 
                     } catch (Exception e) {
-                        Map<String, Object> variables = new HashMap<>();
-                        variables.put("deleteAppStatus", "FAILED");
-                        variables.put("deleteAppError", e.getMessage());
-                        externalTaskService.handleFailure(
+                        // Обработка случая, когда приложение не найдено
+                        externalTaskService.handleBpmnError(
                                 externalTask,
-                                e.getMessage(),
-                                e.toString(),
-                                0, // попыток больше не будет
-                                0  // без задержки
+                                "APP_DOES_NOT_EXIST",
+                                "Application with this id does not exist"
                         );
-                        externalTaskService.complete(externalTask, variables);
                     }
                 })
                 .open();
