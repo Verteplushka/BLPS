@@ -20,6 +20,10 @@ public class Application {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    @ManyToOne
+    @JoinColumn(name = "developer_id", nullable = false)
+    private Developer developer;
+
     @Column(nullable = false, length = 50)
     private String name;
 

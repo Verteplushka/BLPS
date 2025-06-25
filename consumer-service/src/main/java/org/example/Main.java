@@ -1,8 +1,12 @@
 package org.example;
 
 import javax.jms.*;
+import javax.jms.Connection;
+
+import jakarta.resource.ResourceException;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.example.Entity.Application;
+import org.example.Entity.Developer;
 import org.example.Entity.Status;
 
 import java.sql.*;
@@ -24,8 +28,10 @@ public class Main {
     );
 
     public static void main(String[] args) throws Exception {
+        new CamundaExternalTaskHandler().subscribeTasks();
+
         ConnectionFactory connectionFactory = new ActiveMQConnectionFactory(BROKER_URL);
-        javax.jms.Connection connection = connectionFactory.createConnection();
+        Connection connection = connectionFactory.createConnection();
         connection.start();
 
         Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
@@ -41,20 +47,7 @@ public class Main {
                     String text = new String(data);
 
                     Integer appId = Integer.parseInt(text);
-
-                    Application app = getAppFromDatabase(appId);
-
-                    if (app != null) {
-                        System.out.println("📥 Got app: " + app.getName());
-
-                        boolean hasBadWords = containsBadWords(app.getName()) || containsBadWords(app.getDescription());
-
-                        updateAppStatus(app.getId(), hasBadWords ? Status.AUTO_MODERATION_FAILED : Status.ADMIN_MODERATION);
-
-                        System.out.println(hasBadWords ? "❌ Bad words detected" : "✅ App is clean");
-                    } else {
-                        System.out.println("❌ App not found in DB");
-                    }
+                    CamundaNotifier.sendModerationMessage(appId);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -62,6 +55,23 @@ public class Main {
         });
 
         System.out.println("✅ JMS listener started. Waiting for messages...");
+    }
+
+    public static boolean checkApp(Integer appId){
+        Application app = getAppFromDatabase(appId);
+
+        if (app != null) {
+            System.out.println("📥 Got app: " + app.getName());
+
+            boolean hasBadWords = containsBadWords(app.getName()) || containsBadWords(app.getDescription());
+
+            System.out.println(hasBadWords ? "❌ Bad words detected" : "✅ App is clean");
+            return hasBadWords;
+
+        } else {
+            System.out.println("❌ App not found in DB");
+            throw new RuntimeException("App not found in DB");
+        }
     }
 
     public static boolean containsBadWords(String text) {
@@ -77,7 +87,7 @@ public class Main {
         // задача попадает в task-tracker и висит там до тех пор пока админ не закончит модерацию, чтобы там изменялись статусы задачи +
 
 
-    private static Application getAppFromDatabase(Integer appId) {
+    public static Application getAppFromDatabase(Integer appId) {
         try (java.sql.Connection conn = DriverManager.getConnection(JDBC_URL, JDBC_USER, JDBC_PASS)) {
             String sql = "SELECT * FROM applications WHERE id = ?";
             PreparedStatement ps = conn.prepareStatement(sql);
@@ -90,6 +100,7 @@ public class Main {
                 app.setName(rs.getString("name"));
                 app.setDescription(rs.getString("description"));
                 app.setStatus(Status.valueOf(rs.getString("moderation_status")));
+                app.setDeveloper(getDeveloperById(conn, rs.getInt("developer_id")));
                 return app;
             }
         } catch (SQLException e) {
@@ -98,7 +109,26 @@ public class Main {
         return null;
     }
 
-    private static void updateAppStatus(Integer appId, Status status) {
+    private static Developer getDeveloperById(java.sql.Connection conn, int developerId) throws SQLException {
+        String sql = "SELECT * FROM developers WHERE id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, developerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    Developer dev = new Developer();
+                    dev.setId(rs.getInt("id"));
+                    dev.setUserId(rs.getInt("user_id"));
+                    dev.setName(rs.getString("name"));
+                    dev.setWebsite(rs.getString("website"));
+                    return dev;
+                }
+            }
+        }
+        return null;
+    }
+
+
+    public static void updateAppStatus(Integer appId, Status status) {
         try (java.sql.Connection conn = DriverManager.getConnection(JDBC_URL, JDBC_USER, JDBC_PASS)) {
             String sql = "UPDATE applications SET moderation_status = ? WHERE id = ?";
             PreparedStatement ps = conn.prepareStatement(sql);
