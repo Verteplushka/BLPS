@@ -43,10 +43,9 @@ public class ApplicationService {
     private final JiraAdapterClient jiraAdapterClient;
     private Platform platform;
     private final JdbcTemplate jdbcTemplate;
-    private final EntityManager entityManager;
 
     @Autowired
-    public ApplicationService(ApplicationRepository applicationRepository, PlatformService platformService, TagService tagService, DeveloperService developerService, PlatformTransactionManager transactionManager, MqttMessageSender mqttMessageSender, JiraAdapterClient jiraAdapterClient, JdbcTemplate jdbcTemplate, EntityManager entityManager) {
+    public ApplicationService(ApplicationRepository applicationRepository, PlatformService platformService, TagService tagService, DeveloperService developerService, PlatformTransactionManager transactionManager, MqttMessageSender mqttMessageSender, JiraAdapterClient jiraAdapterClient, JdbcTemplate jdbcTemplate) {
         this.applicationRepository = applicationRepository;
         this.platformService = platformService;
         this.tagService = tagService;
@@ -55,7 +54,6 @@ public class ApplicationService {
         this.mqttMessageSender = mqttMessageSender;
         this.jiraAdapterClient = jiraAdapterClient;
         this.jdbcTemplate = jdbcTemplate;
-        this.entityManager = entityManager;
     }
 
     @PostConstruct
@@ -380,8 +378,6 @@ public class ApplicationService {
                     newStatus.name(),
                     applicationId
             );
-
-            jiraAdapterClient.completeTaskByAppId(app.getId());
 
             transactionManager.commit(transaction);
         } catch (Exception e) {

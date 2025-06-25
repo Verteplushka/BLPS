@@ -9,6 +9,7 @@ import com.example.BLPS.Utils.UserXmlReader;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
+import jakarta.resource.ResourceException;
 import lombok.RequiredArgsConstructor;
 import org.camunda.bpm.client.ExternalTaskClient;
 import org.camunda.bpm.engine.variable.Variables;
@@ -30,6 +31,7 @@ public class CamundaExternalTaskHandler {
     private final ApplicationService applicationService;
     private final MqttMessageSender mqttMessageSender;
     private final String moderationQueueName = "moderation-queue";
+    private final JiraAdapterClient jiraAdapterClient;
 
     private final ExternalTaskClient client = ExternalTaskClient.create()
             .baseUrl("http://localhost:8085/engine-rest")
@@ -139,6 +141,21 @@ public class CamundaExternalTaskHandler {
                         );
 
                     }
+
+                    externalTaskService.complete(externalTask, variables);
+                })
+                .open();
+        client.subscribe("completeJiraTask")
+                .handler((externalTask, externalTaskService) -> {
+                    Map<String, Object> variables = new HashMap<>();
+                    int appId = Integer.parseInt(externalTask.getVariable("applicationId").toString());
+                    try {
+                        jiraAdapterClient.completeTaskByAppId(appId);
+                    } catch (ResourceException e) {
+                        throw new RuntimeException(e);
+                    }
+                    variables.put("completeJiraTaskStatus", "SUCCESS");
+                    variables.put("completeJiraTaskMessage", "Task " + appId + " has been completed");
 
                     externalTaskService.complete(externalTask, variables);
                 })
