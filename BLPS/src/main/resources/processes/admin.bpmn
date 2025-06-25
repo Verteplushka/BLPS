@@ -14,9 +14,11 @@
             <camunda:value id="reject" name="Reject" />
             <camunda:value id="ban" name="Ban" />
             <camunda:value id="unban" name="Unban" />
+            <camunda:value id="pending" name="Pending" />
           </camunda:formField>
         </camunda:formData>
       </bpmn:extensionElements>
+      <bpmn:incoming>Flow_13dl3s4</bpmn:incoming>
     </bpmn:userTask>
     <bpmn:sequenceFlow id="Flow_1l0cu05" sourceRef="StartEvent_1" targetRef="adminReview" />
     <bpmn:exclusiveGateway id="Gateway_1wllo9q">
@@ -25,6 +27,7 @@
       <bpmn:outgoing>Flow_1v5xadf</bpmn:outgoing>
       <bpmn:outgoing>Flow_04vgiu2</bpmn:outgoing>
       <bpmn:outgoing>Flow_1rvfhh3</bpmn:outgoing>
+      <bpmn:outgoing>Flow_18xi3xo</bpmn:outgoing>
     </bpmn:exclusiveGateway>
     <bpmn:sequenceFlow id="Flow_0l9ao8o" sourceRef="adminReview" targetRef="Gateway_1wllo9q" />
     <bpmn:serviceTask id="Activity_18a85oh" name="approve" camunda:type="external" camunda:topic="approveApplication">
@@ -60,7 +63,9 @@
       <bpmn:incoming>Flow_1rvfhh3</bpmn:incoming>
       <bpmn:outgoing>Flow_0kjnga0</bpmn:outgoing>
     </bpmn:serviceTask>
-    <bpmn:sequenceFlow id="Flow_1rvfhh3" sourceRef="Gateway_1wllo9q" targetRef="Activity_07t1b3h" />
+    <bpmn:sequenceFlow id="Flow_1rvfhh3" sourceRef="Gateway_1wllo9q" targetRef="Activity_07t1b3h">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${action == "unban"}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_0kjnga0" sourceRef="Activity_07t1b3h" targetRef="Event_13sq8hy" />
     <bpmn:serviceTask id="Activity_0m5c9sk" name="Complete Jira task" camunda:type="external" camunda:topic="completeJiraTask">
       <bpmn:incoming>Flow_1s38gca</bpmn:incoming>
@@ -68,6 +73,14 @@
       <bpmn:outgoing>Flow_1bzi7u7</bpmn:outgoing>
     </bpmn:serviceTask>
     <bpmn:sequenceFlow id="Flow_1bzi7u7" sourceRef="Activity_0m5c9sk" targetRef="Event_13sq8hy" />
+    <bpmn:serviceTask id="Activity_0y9uitw" name="Show pending apps" camunda:type="external" camunda:topic="showPending">
+      <bpmn:incoming>Flow_18xi3xo</bpmn:incoming>
+      <bpmn:outgoing>Flow_13dl3s4</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_18xi3xo" sourceRef="Gateway_1wllo9q" targetRef="Activity_0y9uitw">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${action == "pending"}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_13dl3s4" sourceRef="Activity_0y9uitw" targetRef="adminReview" />
   </bpmn:process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
     <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="admin_process">
@@ -93,15 +106,19 @@
         <dc:Bounds x="530" y="310" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_13sq8hy_di" bpmnElement="Event_13sq8hy">
+        <dc:Bounds x="1022" y="282" width="36" height="36" />
+      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_07t1b3h_di" bpmnElement="Activity_07t1b3h">
         <dc:Bounds x="530" y="420" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Event_13sq8hy_di" bpmnElement="Event_13sq8hy">
-        <dc:Bounds x="1022" y="282" width="36" height="36" />
-      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_0m5c9sk_di" bpmnElement="Activity_0m5c9sk">
         <dc:Bounds x="780" y="150" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0y9uitw_di" bpmnElement="Activity_0y9uitw">
+        <dc:Bounds x="530" y="530" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_1l0cu05_di" bpmnElement="Flow_1l0cu05">
@@ -158,6 +175,17 @@
         <di:waypoint x="880" y="190" />
         <di:waypoint x="1040" y="190" />
         <di:waypoint x="1040" y="282" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_18xi3xo_di" bpmnElement="Flow_18xi3xo">
+        <di:waypoint x="440" y="255" />
+        <di:waypoint x="440" y="570" />
+        <di:waypoint x="530" y="570" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_13dl3s4_di" bpmnElement="Flow_13dl3s4">
+        <di:waypoint x="580" y="610" />
+        <di:waypoint x="580" y="660" />
+        <di:waypoint x="310" y="660" />
+        <di:waypoint x="310" y="280" />
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>

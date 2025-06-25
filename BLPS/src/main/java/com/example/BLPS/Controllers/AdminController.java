@@ -1,12 +1,13 @@
 package com.example.BLPS.Controllers;
 
-import com.example.BLPS.Dto.ApplicationDtoDetailed;
-import com.example.BLPS.Dto.BanRequestDto;
-import com.example.BLPS.Dto.UnbanRequestDto;
+import com.example.BLPS.Dto.*;
 import com.example.BLPS.Entities.Status;
 import com.example.BLPS.Exceptions.ApplicationNotPendingModerationException;
 import com.example.BLPS.Service.ApplicationService;
 import com.example.BLPS.camunda.RestMethods;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -23,25 +24,39 @@ import java.util.Map;
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
 public class AdminController {
-
-    private final ApplicationService applicationService;
-
     private final RestMethods restMethods;
-
     private static final String CAMUNDA_URL = "http://localhost:8085/engine-rest/process-definition/key/admin_process/";
 
+    @PostMapping("/start")
+    public ResponseEntity<?> startProcess() {
+        String processInstanceId = restMethods.startProcess(CAMUNDA_URL, null);
+        return ResponseEntity.ok(Map.of("processInstanceId", processInstanceId));
+    }
+
     @GetMapping("/pending")
-    public ResponseEntity<List<ApplicationDtoDetailed>> getPendingApplications() {
-        List<ApplicationDtoDetailed> pendingApps = applicationService.getApplicationsByStatus(Status.ADMIN_MODERATION);
-        return ResponseEntity.ok(pendingApps);
+    public ResponseEntity<?> getPendingApplications(@RequestParam String processInstanceId) {
+        try {
+            Map<String, Object> result = restMethods.completeTaskAndWaitForResult(processInstanceId, Map.of("action", "pending"));
+
+            String json = (String) restMethods.getVariableByProcessId(processInstanceId, "pendingAppsJson");
+            ObjectMapper mapper = new ObjectMapper();
+
+            List<ApplicationDtoDetailed> pendingApps = mapper.readValue(json, new TypeReference<List<ApplicationDtoDetailed>>() {
+            });
+            return ResponseEntity.ok(pendingApps);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "status", "FAILED",
+                    "error", "Failed to get apps JSON: " + e.getMessage()
+            ));
+        }
     }
 
     @PostMapping("/approve/{id}")
-    public ResponseEntity<Map<String, Object>> approveApplication(@PathVariable Long id) {
-        Map<String, Object> result = restMethods.startProcessAndWaitForResult(CAMUNDA_URL, Map.of("applicationId", id, "action", "approve"));
+    public ResponseEntity<Map<String, Object>> approveApplication(@PathVariable Long id, @RequestParam String processInstanceId) {
+        Map<String, Object> result = restMethods.completeTaskAndWaitForResult(processInstanceId, Map.of("applicationId", id, "action", "approve"));
 
         String status = (String) result.getOrDefault("status", "UNKNOWN");
-        System.out.println();
 
         if ("FAILED".equalsIgnoreCase(status)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -70,8 +85,8 @@ public class AdminController {
 
 
     @PostMapping("/reject/{id}")
-    public ResponseEntity<Map<String, Object>> rejectApplication(@PathVariable Long id) {
-        Map<String, Object> result = restMethods.startProcessAndWaitForResult(CAMUNDA_URL, Map.of("applicationId", id, "action", "reject"));
+    public ResponseEntity<Map<String, Object>> rejectApplication(@PathVariable Long id, @RequestParam String processInstanceId) {
+        Map<String, Object> result = restMethods.completeTaskAndWaitForResult(processInstanceId, Map.of("applicationId", id, "action", "reject"));
 
         String status = (String) result.getOrDefault("status", "UNKNOWN");
 
@@ -102,17 +117,15 @@ public class AdminController {
 
     @PostMapping("/ban")
     public ResponseEntity<Map<String, Object>> banDeveloper(
-            @RequestBody BanRequestDto banRequest) {
+            @RequestBody BanRequestDto banRequest,
+            @RequestParam String processInstanceId) {
 
         Map<String, Object> variables = new HashMap<>();
         variables.put("developerId", banRequest.getDeveloperId());
         variables.put("action", "ban");
         variables.put("banReason", banRequest.getReason());
 
-        Map<String, Object> result = restMethods.startProcessAndWaitForResult(
-                CAMUNDA_URL,
-                variables
-        );
+        Map<String, Object> result = restMethods.completeTaskAndWaitForResult(processInstanceId, variables);
 
         String status = (String) result.getOrDefault("status", "UNKNOWN");
 
@@ -141,15 +154,16 @@ public class AdminController {
                 "reason", banRequest.getReason()
         ));
     }
+
     @PostMapping("/unban")
-    public ResponseEntity<Map<String, Object>> unbanDeveloper(@RequestBody UnbanRequestDto unbanRequest) {
+    public ResponseEntity<Map<String, Object>> unbanDeveloper(@RequestBody UnbanRequestDto unbanRequest, @RequestParam String processInstanceId) {
 
         Map<String, Object> variables = new HashMap<>();
         variables.put("developerId", unbanRequest.getDeveloperId());
         variables.put("action", "unban");
         variables.put("unbanMessage", unbanRequest.getMessage() != null ? unbanRequest.getMessage() : "Developer unbanned");
 
-        Map<String, Object> result = restMethods.startProcessAndWaitForResult(CAMUNDA_URL, variables);
+        Map<String, Object> result = restMethods.completeTaskAndWaitForResult(processInstanceId, variables);
 
         String status = (String) result.getOrDefault("status", "UNKNOWN");
 
@@ -175,10 +189,6 @@ public class AdminController {
                 "processInstanceId", result.get("processInstanceId")
         ));
     }
-
-
-
-
 
 
     @ExceptionHandler(ApplicationNotPendingModerationException.class)

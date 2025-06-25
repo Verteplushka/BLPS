@@ -145,6 +145,36 @@ public class CamundaExternalTaskHandler {
                     externalTaskService.complete(externalTask, variables);
                 })
                 .open();
+        client.subscribe("showPending")
+                .handler((externalTask, externalTaskService) -> {
+                    try {
+                        List<ApplicationDtoDetailed> apps = applicationService.getApplicationsByStatus(Status.ADMIN_MODERATION);
+
+                        ObjectMapper mapper = new ObjectMapper();
+                        String appsJson = mapper.writeValueAsString(apps);
+
+                        ObjectValue appsValue = Variables
+                                .objectValue(appsJson)
+                                .serializationDataFormat("application/json")
+                                .create();
+
+                        externalTaskService.complete(externalTask, Map.of("pendingAppsJson", appsValue));
+
+                    } catch (Exception e) {
+                        Map<String, Object> variables = new HashMap<>();
+                        variables.put("status", "FAILED");
+                        variables.put("error", e.getMessage());
+                        externalTaskService.handleFailure(
+                                externalTask,
+                                e.getMessage(),
+                                e.toString(),
+                                0, // попыток больше не будет
+                                0  // без задержки
+                        );
+                        externalTaskService.complete(externalTask, variables);
+                    }
+                })
+                .open();
         client.subscribe("completeJiraTask")
                 .handler((externalTask, externalTaskService) -> {
                     Map<String, Object> variables = new HashMap<>();

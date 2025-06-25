@@ -351,6 +351,7 @@ public class ApplicationService {
         }
     }
 
+    @Transactional
     public List<ApplicationDtoDetailed> getApplicationsByStatus(Status status) {
         List<Application> apps = applicationRepository.findAllByStatus(status);
         return apps.stream()
