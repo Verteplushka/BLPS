@@ -688,7 +688,7 @@ public class CamundaExternalTaskHandler {
                          // Обработка случая, когда приложение не найдено
                          externalTaskService.handleBpmnError(
                                  externalTask,
-                                 "APP_DOES_NOT_EXIST",
+                                 "APP_DOES_NOT_EXIST_DEV",
                                  "Application with this id does not exist"
                          );
                     }
@@ -711,7 +711,7 @@ public class CamundaExternalTaskHandler {
                         // Обработка случая, когда приложение не найдено
                         externalTaskService.handleBpmnError(
                                 externalTask,
-                                "APP_DOES_NOT_EXIST",
+                                "APP_DOES_NOT_EXIST_DEV",
                                 "Application with this id does not exist"
                         );
                     }
