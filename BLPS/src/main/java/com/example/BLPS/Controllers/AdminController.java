@@ -1,11 +1,8 @@
 package com.example.BLPS.Controllers;
 
 import com.example.BLPS.Dto.*;
-import com.example.BLPS.Entities.Status;
 import com.example.BLPS.Exceptions.ApplicationNotPendingModerationException;
-import com.example.BLPS.Service.ApplicationService;
 import com.example.BLPS.camunda.RestMethods;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityNotFoundException;
@@ -13,9 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
 
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +36,7 @@ public class AdminController {
             String json = (String) restMethods.getVariableByProcessId(processInstanceId, "pendingAppsJson");
             ObjectMapper mapper = new ObjectMapper();
 
-            List<ApplicationDtoDetailed> pendingApps = mapper.readValue(json, new TypeReference<List<ApplicationDtoDetailed>>() {
+            List<DeveloperApplicationDto> pendingApps = mapper.readValue(json, new TypeReference<List<DeveloperApplicationDto>>() {
             });
             return ResponseEntity.ok(pendingApps);
         } catch (Exception e) {

@@ -148,7 +148,7 @@ public class CamundaExternalTaskHandler {
         client.subscribe("showPending")
                 .handler((externalTask, externalTaskService) -> {
                     try {
-                        List<ApplicationDtoDetailed> apps = applicationService.getApplicationsByStatus(Status.ADMIN_MODERATION);
+                        List<DeveloperApplicationDto> apps = applicationService.getApplicationsByStatus(Status.ADMIN_MODERATION);
 
                         ObjectMapper mapper = new ObjectMapper();
                         String appsJson = mapper.writeValueAsString(apps);

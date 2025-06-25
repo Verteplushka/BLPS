@@ -352,10 +352,10 @@ public class ApplicationService {
     }
 
     @Transactional
-    public List<ApplicationDtoDetailed> getApplicationsByStatus(Status status) {
+    public List<DeveloperApplicationDto> getApplicationsByStatus(Status status) {
         List<Application> apps = applicationRepository.findAllByStatus(status);
         return apps.stream()
-                .map(ApplicationMapper::toDtoDetailed)
+                .map(ApplicationMapper::toDeveloperApplicationDto)
                 .toList();
     }
 
