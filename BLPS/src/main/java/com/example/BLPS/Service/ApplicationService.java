@@ -197,7 +197,7 @@ public class ApplicationService {
     }
 
     public List<ApplicationDto> exactSearch(String name) {
-        List<ApplicationDto> applicationDtos =  ApplicationMapper.toDtoList(applicationRepository.findByNameContainingIgnoreCaseAndPlatformAndStatus(name, platform, Status.APPROVED));
+        List<ApplicationDto> applicationDtos = ApplicationMapper.toDtoList(applicationRepository.findByNameContainingIgnoreCaseAndPlatformAndStatus(name, platform, Status.APPROVED));
         if (applicationDtos.isEmpty()) {
             throw new AppsNotFoundException("No applications found for exact search with name \" " + name + "\"");
         }
@@ -231,15 +231,30 @@ public class ApplicationService {
         }
     }
 
+    @Transactional
+    public List<DeveloperApplicationDto> getAllApplicationsForDeveloperByName(String username) {
+        try {
+            UserXmlReader reader = new UserXmlReader(xmlFilePath);
+            int userId = reader.getUserIdByUsername(username);
 
-    public ApplicationDtoDetailed createApplication(CreateApplicationDto request) {
+            Developer developer = developerService.findByUserId(userId);
+            List<Application> applications = applicationRepository.findAllByDeveloper(developer);
+
+            return applications.stream()
+                    .map(ApplicationMapper::toDeveloperApplicationDto)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to fetch developer's applications: " + e.getMessage());
+        }
+    }
+
+
+    @Transactional
+    public ApplicationDtoDetailed createApplication(String username, CreateApplicationDto request) {
         TransactionDefinition def = new DefaultTransactionDefinition();
         TransactionStatus status = transactionManager.getTransaction(def);
 
         try {
-
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String username = authentication.getName();
             UserXmlReader reader = new UserXmlReader(xmlFilePath);
             int userId = reader.getUserIdByUsername(username);
 
@@ -265,13 +280,58 @@ public class ApplicationService {
         }
     }
 
-    public void deleteApplicationById(Long appId) {
+    @Transactional
+    public ApplicationDtoDetailed updateApplication(String username, Long appId, CreateApplicationDto updatedData) {
         TransactionDefinition def = new DefaultTransactionDefinition();
         TransactionStatus status = transactionManager.getTransaction(def);
 
         try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String username = authentication.getName();
+            UserXmlReader reader = new UserXmlReader(xmlFilePath);
+            int userId = reader.getUserIdByUsername(username);
+
+            Application app = applicationRepository.findById(appId)
+                    .orElseThrow(() -> new RuntimeException("Application not found"));
+
+            if (app.getDeveloper().getUserId() != userId) {
+                throw new RuntimeException("Only the developer of this application can update it");
+            }
+
+            List<Platform> platforms = platformService.findAllById(updatedData.getPlatformIds());
+            List<Tag> tags = tagService.findAllById(updatedData.getTagIds());
+
+            app.setName(updatedData.getName());
+            app.setDescription(updatedData.getDescription());
+            app.setPrice(updatedData.getPrice());
+            app.setImageUrl(updatedData.getImageUrl());
+            app.setHasPaidContent(updatedData.getHasPaidContent());
+            app.setHasAds(updatedData.getHasAds());
+            app.setIsEditorsChoice(updatedData.getIsEditorsChoice());
+            app.setAgeLimit(updatedData.getAgeLimit());
+            app.setIsRecommended(updatedData.getIsRecommended());
+            app.setPlatforms(platforms);
+            app.setTags(tags);
+            app.setStatus(Status.AUTO_MODERATION);
+
+            Application saved = applicationRepository.save(app);
+
+            jiraAdapterClient.createModerationTask(saved.getId(), saved.getName(), saved.getDeveloper().getName());
+
+            mqttMessageSender.sendMessage(moderationQueueName, saved.getId().toString());
+
+            transactionManager.commit(status);
+            return ApplicationMapper.toDtoDetailed(saved);
+        } catch (Exception e) {
+            transactionManager.rollback(status);
+            throw new RuntimeException("Failed to update application: " + e.getMessage());
+        }
+    }
+
+    @Transactional
+    public void deleteApplicationByIdAndDevName(Long appId, String username) {
+        TransactionDefinition def = new DefaultTransactionDefinition();
+        TransactionStatus status = transactionManager.getTransaction(def);
+
+        try {
             UserXmlReader reader = new UserXmlReader(xmlFilePath);
             int userId = reader.getUserIdByUsername(username);
             String role = reader.getUserRoleByUsername(username);
@@ -288,46 +348,6 @@ public class ApplicationService {
         } catch (Exception e) {
             transactionManager.rollback(status);
             throw new RuntimeException("Failed to delete application: " + e.getMessage());
-        }
-    }
-
-    public ApplicationDtoDetailed updateApplication(Long appId, UpdateApplicationDto updatedData) {
-        TransactionDefinition def = new DefaultTransactionDefinition();
-        TransactionStatus status = transactionManager.getTransaction(def);
-
-        try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String username = authentication.getName();
-            UserXmlReader reader = new UserXmlReader(xmlFilePath);
-            int userId = reader.getUserIdByUsername(username);
-
-            Application app = applicationRepository.findById(appId)
-                    .orElseThrow(() -> new RuntimeException("Application not found"));
-
-            if (app.getDeveloper().getUserId() != userId) {
-                throw new RuntimeException("Only the developer of this application can update it");
-            }
-
-            List<Platform> platforms = platformService.findAllById(updatedData.getPlatformIds());
-            List<Tag> tags = tagService.findAllById(updatedData.getTagIds());
-
-            app.setName(updatedData.getName());
-            app.setDescription(updatedData.getDescription());
-            app.setPlatforms(platforms);
-            app.setTags(tags);
-            app.setStatus(Status.AUTO_MODERATION);
-
-            Application saved = applicationRepository.save(app);
-
-            jiraAdapterClient.createModerationTask(saved.getId(), saved.getName(), saved.getDeveloper().getName());
-
-            mqttMessageSender.sendMessage(moderationQueueName, saved.getId().toString());
-
-            transactionManager.commit(status);
-            return ApplicationMapper.toDtoDetailed(saved);
-        } catch (Exception e) {
-            transactionManager.rollback(status);
-            throw new RuntimeException("Failed to update application: " + e.getMessage());
         }
     }
 
@@ -367,7 +387,6 @@ public class ApplicationService {
             throw new RuntimeException("Status update error: " + e.getMessage(), e);
         }
     }
-
 
 
     public void rejectAllApplicationsByDeveloper(Integer developerId, String reason) {

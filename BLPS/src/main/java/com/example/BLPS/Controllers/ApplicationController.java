@@ -42,7 +42,7 @@ public class ApplicationController {
         if ("FAILED".equalsIgnoreCase(status) || "TIMEOUT".equalsIgnoreCase(status)) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
                     "status", status,
-                    "error", result.getOrDefault("error", "Failed to load categories"),
+                    "error", result.getOrDefault("error", "Failed to start process"),
                     "processInstanceId", result.get("processInstanceId")
             ));
         }
@@ -111,7 +111,7 @@ public class ApplicationController {
 
             return ResponseEntity.ok(Map.of(
                     "status", "SUCCESS",
-                    "message", result.getOrDefault("message", "Platform changed"),
+                    "message", "Platform changed",
                     "processInstanceId", processInstanceId
             ));
 
@@ -214,17 +214,45 @@ public class ApplicationController {
 
 
     @GetMapping("/exactSearch")
-    public ResponseEntity<?> exactSearch(@RequestParam String name, @RequestParam String processInstanceId) {
-        try {
-            return ResponseEntity.ok(applicationService.exactSearch(name));
-        } catch (AppsNotFoundException e) {
-            return ResponseEntity.ok(new NotFoundDto("Приложение с названием \"" + name + "\" не найдено. Вот приложения, которые могут вам понравиться", applicationService.getRecommendedApplications()));
+    public ResponseEntity<?> exactSearch(@RequestParam String processInstanceId) {
+    try {
+        Map<String, Object> result = restMethods.completeTaskAndWaitForResult(processInstanceId, Map.of("wantSearchOriginal", true));
+
+        String status = (String) result.getOrDefault("status", "UNKNOWN");
+
+        if ("FAILED".equalsIgnoreCase(status) || "TIMEOUT".equalsIgnoreCase(status)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of(
+                            "status", status,
+                            "error", result.getOrDefault("error", "Couldn't search app by original string"),
+                            "processInstanceId", processInstanceId
+                    ));
         }
+
+        ObjectMapper mapper = new ObjectMapper();
+
+        String json = (String) restMethods.getVariableByProcessId(processInstanceId, "appsListJson");
+        try {
+            List<ApplicationDto> applications = mapper.readValue(json, new TypeReference<List<ApplicationDto>>() {});
+            return ResponseEntity.ok(applications);
+
+        } catch (JsonProcessingException e1) {
+            NotFoundDto notFound = mapper.readValue(json, NotFoundDto.class);
+            return ResponseEntity.ok(notFound);
+        }
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of(
+                        "status", "FAILED",
+                        "error", e.getMessage(),
+                        "processInstanceId", processInstanceId
+                ));
+    }
     }
 
     @PostMapping("/end")
     public ResponseEntity<?> endProcess(@RequestParam String processInstanceId) {
-        Map<String, Object> result = restMethods.completeTaskAndWaitForResult(processInstanceId, null);
+        Map<String, Object> result = restMethods.completeTaskAndWaitForResult(processInstanceId, Map.of("wantSearchOriginal", false));
 
         String status = (String) result.getOrDefault("status", "UNKNOWN");
 
