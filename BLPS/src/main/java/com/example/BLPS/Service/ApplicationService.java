@@ -76,17 +76,20 @@ public class ApplicationService {
         this.platform = foundPlatform;
     }
 
-    private List<ApplicationDto> getTop10Applications() {
+    @Transactional
+    public List<ApplicationDto> getTop10Applications() {
         List<Application> applications = applicationRepository.findTop10ByPlatformAndStatusOrderByRatingDesc(platform, Status.APPROVED);
         return ApplicationMapper.toDtoList(applications);
     }
 
+    @Transactional
     public List<ApplicationDto> getRecommendedApplications() {
         List<Application> applications = applicationRepository.findByPlatformAndIsRecommendedTrueAndStatus(platform, Status.APPROVED);
         return ApplicationMapper.toDtoList(applications);
     }
 
-    private List<CategoryDto> getApplicationsByTags() {
+    @Transactional
+    public List<CategoryDto> getApplicationsByTags() {
         List<Tag> tags = tagService.findAll();
         List<CategoryDto> categories = new ArrayList<>();
 

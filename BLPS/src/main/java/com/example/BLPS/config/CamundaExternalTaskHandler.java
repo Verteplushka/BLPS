@@ -6,6 +6,7 @@ import com.example.BLPS.Quartz.RatingUpdater;
 import com.example.BLPS.Service.ApplicationService;
 import com.example.BLPS.Service.DeveloperService;
 import com.example.BLPS.Utils.UserXmlReader;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -15,10 +16,7 @@ import org.camunda.bpm.engine.variable.value.ObjectValue;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.camunda.bpm.engine.variable.Variables.booleanValue;
@@ -166,15 +164,114 @@ public class CamundaExternalTaskHandler {
                     externalTaskService.complete(externalTask, variables);
                 })
                 .open();
-        client.subscribe("returnAppsList")
+        client.subscribe("getTop10")
                 .handler((externalTask, externalTaskService) -> {
                     try {
-                        List<CategoryDto> categories = applicationService.getApplicationsByCategories();
-                        applicationService.getApplicationsByCategories();
+                        List<ApplicationDto> apps = applicationService.getTop10Applications();
 
                         ObjectMapper mapper = new ObjectMapper();
-                        String appsJson = mapper.writeValueAsString(categories);
+                        String appsJson = mapper.writeValueAsString(apps);
 
+                        ObjectValue appsValue = Variables
+                                .objectValue(appsJson)
+                                .serializationDataFormat("application/json")
+                                .create();
+
+                        externalTaskService.complete(externalTask, Map.of("top10", appsValue));
+
+                    } catch (Exception e) {
+                        Map<String, Object> variables = new HashMap<>();
+                        variables.put("status", "FAILED");
+                        variables.put("error", e.getMessage());
+                        externalTaskService.handleFailure(
+                                externalTask,
+                                e.getMessage(),
+                                e.toString(),
+                                0, // попыток больше не будет
+                                0  // без задержки
+                        );
+                        externalTaskService.complete(externalTask, variables);
+                    }
+                })
+                .open();
+        client.subscribe("getRecommended")
+                .handler((externalTask, externalTaskService) -> {
+                    try {
+                        List<ApplicationDto> apps = applicationService.getRecommendedApplications();
+
+                        ObjectMapper mapper = new ObjectMapper();
+                        String appsJson = mapper.writeValueAsString(apps);
+
+                        ObjectValue appsValue = Variables
+                                .objectValue(appsJson)
+                                .serializationDataFormat("application/json")
+                                .create();
+
+                        externalTaskService.complete(externalTask, Map.of("recommended", appsValue));
+
+                    } catch (Exception e) {
+                        Map<String, Object> variables = new HashMap<>();
+                        variables.put("status", "FAILED");
+                        variables.put("error", e.getMessage());
+                        externalTaskService.handleFailure(
+                                externalTask,
+                                e.getMessage(),
+                                e.toString(),
+                                0, // попыток больше не будет
+                                0  // без задержки
+                        );
+                        externalTaskService.complete(externalTask, variables);
+                    }
+                })
+                .open();
+        client.subscribe("getByTags")
+                .handler((externalTask, externalTaskService) -> {
+                    try {
+                        List<CategoryDto> apps = applicationService.getApplicationsByTags();
+
+                        ObjectMapper mapper = new ObjectMapper();
+                        String appsJson = mapper.writeValueAsString(apps);
+
+                        ObjectValue appsValue = Variables
+                                .objectValue(appsJson)
+                                .serializationDataFormat("application/json")
+                                .create();
+
+                        externalTaskService.complete(externalTask, Map.of("byTags", appsValue));
+
+                    } catch (Exception e) {
+                        Map<String, Object> variables = new HashMap<>();
+                        variables.put("status", "FAILED");
+                        variables.put("error", e.getMessage());
+                        externalTaskService.handleFailure(
+                                externalTask,
+                                e.getMessage(),
+                                e.toString(),
+                                0, // попыток больше не будет
+                                0  // без задержки
+                        );
+                        externalTaskService.complete(externalTask, variables);
+                    }
+                })
+                .open();
+        client.subscribe("mergeResults")
+                .handler((externalTask, externalTaskService) -> {
+                    try {
+                        ObjectMapper mapper = new ObjectMapper();
+                        String jsonTop10 = externalTask.getVariable("top10");
+                        String jsonRecommended = externalTask.getVariable("recommended");
+                        String jsonByTags = externalTask.getVariable("byTags");
+
+                        List<ApplicationDto> top10 = mapper.readValue(jsonTop10, new TypeReference<List<ApplicationDto>>() {});
+                        List<ApplicationDto> recommended = mapper.readValue(jsonRecommended, new TypeReference<List<ApplicationDto>>() {});
+                        List<CategoryDto> byTags = mapper.readValue(jsonByTags, new TypeReference<List<CategoryDto>>() {});
+
+                        List<CategoryDto> categories = new ArrayList<>();
+                        categories.add(new CategoryDto("popular", top10));
+                        categories.add(new CategoryDto("recommended", recommended));
+                        categories.addAll(byTags);
+
+                        String appsJson = mapper.writeValueAsString(categories);
                         ObjectValue appsValue = Variables
                                 .objectValue(appsJson)
                                 .serializationDataFormat("application/json")
