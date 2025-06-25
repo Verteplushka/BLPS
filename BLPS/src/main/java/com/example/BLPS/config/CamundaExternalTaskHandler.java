@@ -406,6 +406,17 @@ public class CamundaExternalTaskHandler {
                     externalTaskService.complete(externalTask, variables);
                 })
                 .open();
+        client.subscribe("showAppNotFoundError")
+                .handler((externalTask, externalTaskService) -> {
+                    Map<String, Object> variables = new HashMap<>();
+                    Long appId = Long.valueOf(externalTask.getVariable("appId").toString());
+
+                    variables.put("showAppNotFoundErrorStatus", "FAILED");
+                    variables.put("showAppNotFoundErrorMessage", "App with id " + appId + " does not exist");
+
+                    externalTaskService.complete(externalTask, variables);
+                })
+                .open();
         client.subscribe("searchAppByExactMatch")
                 .handler((externalTask, externalTaskService) -> {
                     try {

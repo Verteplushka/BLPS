@@ -137,10 +137,10 @@ public class DeveloperController {
 
             Map<String, Object> result = restMethods.completeTaskAndWaitForResult(processInstanceId, vars);
 
-            String status = (String) result.getOrDefault("status", "UNKNOWN");
+            String status = (String) restMethods.getVariableByProcessId(processInstanceId, "showAppNotFoundErrorStatus");
 
             if ("FAILED".equalsIgnoreCase(status) || "TIMEOUT".equalsIgnoreCase(status)) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
                         "status", status,
                         "error", result.getOrDefault("error", "Failed to update application"),
                         "processInstanceId", processInstanceId
@@ -175,10 +175,10 @@ public class DeveloperController {
                     Map.of("appId", appId)
             );
 
-            String status = (String) result.getOrDefault("status", "UNKNOWN");
+            String status = (String) restMethods.getVariableByProcessId(processInstanceId, "showAppNotFoundErrorStatus");
 
             if ("FAILED".equalsIgnoreCase(status) || "TIMEOUT".equalsIgnoreCase(status)) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
                         "status", status,
                         "error", result.getOrDefault("error", "Failed to delete application"),
                         "processInstanceId", processInstanceId
