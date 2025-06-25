@@ -113,13 +113,14 @@ public class DeveloperController {
 
 
     @PutMapping("/update/{appId}")
-    public ResponseEntity<?> updateApplication(
+    public ResponseEntity<Map<String, Object>> updateApplication(
             @PathVariable Long appId,
             @RequestBody CreateApplicationDto request,
             @RequestParam String processInstanceId
     ) {
         try {
             restMethods.completeTaskAndWaitForResult(processInstanceId, Map.of("selectedAction", "update"));
+
             Map<String, Object> vars = new HashMap<>();
             vars.put("appId", appId);
             vars.put("name", request.getName());
@@ -141,73 +142,91 @@ public class DeveloperController {
             if ("FAILED".equalsIgnoreCase(status) || "TIMEOUT".equalsIgnoreCase(status)) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
                         "status", status,
-                        "error", result.getOrDefault("error", "Couldn't update app"),
+                        "error", result.getOrDefault("error", "Failed to update application"),
                         "processInstanceId", processInstanceId
                 ));
             }
 
             return ResponseEntity.ok(Map.of(
                     "status", "SUCCESS",
-                    "message", "App updated",
+                    "message", "Application updated successfully",
                     "processInstanceId", processInstanceId
             ));
 
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
                     "status", "FAILED",
-                    "error", e.getMessage(),
+                    "error", "Failed to update application: " + e.getMessage(),
                     "processInstanceId", processInstanceId
             ));
         }
     }
 
     @DeleteMapping("/delete/{appId}")
-    public ResponseEntity<?> deleteApplication(@PathVariable Long appId, @RequestParam String processInstanceId) {
+    public ResponseEntity<Map<String, Object>> deleteApplication(
+            @PathVariable Long appId,
+            @RequestParam String processInstanceId
+    ) {
         try {
             restMethods.completeTaskAndWaitForResult(processInstanceId, Map.of("selectedAction", "delete"));
-            Map<String, Object> result = restMethods.completeTaskAndWaitForResult(processInstanceId, Map.of("appId", appId));
+
+            Map<String, Object> result = restMethods.completeTaskAndWaitForResult(
+                    processInstanceId,
+                    Map.of("appId", appId)
+            );
 
             String status = (String) result.getOrDefault("status", "UNKNOWN");
 
             if ("FAILED".equalsIgnoreCase(status) || "TIMEOUT".equalsIgnoreCase(status)) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(Map.of(
-                                "status", status,
-                                "error", result.getOrDefault("error", "Couldn't delete app"),
-                                "processInstanceId", processInstanceId
-                        ));
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                        "status", status,
+                        "error", result.getOrDefault("error", "Failed to delete application"),
+                        "processInstanceId", processInstanceId
+                ));
             }
 
             return ResponseEntity.ok(Map.of(
                     "status", "SUCCESS",
-                    "message", "App " + appId + " has been deleted",
+                    "message", "Application deleted successfully",
                     "processInstanceId", processInstanceId
             ));
 
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of(
-                            "status", "FAILED",
-                            "error", e.getMessage(),
-                            "processInstanceId", processInstanceId
-                    ));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "status", "FAILED",
+                    "error", "Failed to delete application: " + e.getMessage(),
+                    "processInstanceId", processInstanceId
+            ));
         }
     }
 
     @PostMapping("/end")
-    public ResponseEntity<?> endProcess(@RequestParam String processInstanceId) {
-        Map<String, Object> result = restMethods.completeTaskAndWaitForResult(processInstanceId, null);
+    public ResponseEntity<Map<String, Object>> endProcess(@RequestParam String processInstanceId) {
+        try {
+            Map<String, Object> result = restMethods.completeTaskAndWaitForResult(processInstanceId, null);
 
-        String status = (String) result.getOrDefault("status", "UNKNOWN");
+            String status = (String) result.getOrDefault("status", "UNKNOWN");
 
-        if ("FAILED".equalsIgnoreCase(status) || "TIMEOUT".equalsIgnoreCase(status)) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
-                    "status", status,
-                    "error", result.getOrDefault("error", "Failed to end process"),
-                    "processInstanceId", result.get("processInstanceId")
+            if ("FAILED".equalsIgnoreCase(status) || "TIMEOUT".equalsIgnoreCase(status)) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                        "status", status,
+                        "error", result.getOrDefault("error", "Failed to end process"),
+                        "processInstanceId", processInstanceId
+                ));
+            }
+
+            return ResponseEntity.ok(Map.of(
+                    "status", "SUCCESS",
+                    "message", "Process ended successfully",
+                    "processInstanceId", processInstanceId
+            ));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "status", "FAILED",
+                    "error", "Failed to end process: " + e.getMessage(),
+                    "processInstanceId", processInstanceId
             ));
         }
-
-        return ResponseEntity.ok("Process " + processInstanceId + " ended successfully");
     }
 }
