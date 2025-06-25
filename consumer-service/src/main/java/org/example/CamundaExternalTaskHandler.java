@@ -82,6 +82,29 @@ public class CamundaExternalTaskHandler {
                     try {
                         Integer appId = Integer.parseInt(externalTask.getVariable("moderationRequest").toString());
                         Main.updateAppStatus(appId, Status.ADMIN_MODERATION);
+
+                        variables.put("setSuccessStatus", "SUCCESS");
+                        variables.put("setSuccessMessage", "FailedStatus set successfully");
+                        externalTaskService.complete(externalTask, variables);
+
+                    } catch (Exception e) {
+                        variables.put("setSuccessStatus", "FAILED");
+                        variables.put("setSuccessMessage", e.getMessage());
+                        externalTaskService.handleFailure(
+                                externalTask,
+                                e.getMessage(),
+                                e.toString(),
+                                0, // попыток больше не будет
+                                0  // без задержки
+                        );
+                    }
+                })
+                .open();
+        client.subscribe("createJiraTask")
+                .handler((externalTask, externalTaskService) -> {
+                    Map<String, Object> variables = new HashMap<>();
+                    try {
+                        int appId = Integer.parseInt(externalTask.getVariable("moderationRequest").toString());
                         Application app = Main.getAppFromDatabase(appId);
                         jiraAdapterClient.createModerationTask(appId, app.getName(), app.getDeveloper().getName());
 

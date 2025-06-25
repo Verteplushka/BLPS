@@ -8,7 +8,7 @@
     </bpmn:serviceTask>
     <bpmn:endEvent id="Event_1w7v8cw">
       <bpmn:incoming>Flow_0uoxxb9</bpmn:incoming>
-      <bpmn:incoming>Flow_1s9wrg7</bpmn:incoming>
+      <bpmn:incoming>Flow_0j00b1c</bpmn:incoming>
     </bpmn:endEvent>
     <bpmn:startEvent id="Event_141vywk" name="Start on JMS Message">
       <bpmn:outgoing>Flow_0iugg34</bpmn:outgoing>
@@ -34,13 +34,21 @@
     </bpmn:serviceTask>
     <bpmn:sequenceFlow id="Flow_04kbnuy" name="No" sourceRef="Gateway_159dh8q" targetRef="Activity_1cbj1n7" />
     <bpmn:sequenceFlow id="Flow_0uoxxb9" sourceRef="Activity_18dijz9" targetRef="Event_1w7v8cw" />
-    <bpmn:sequenceFlow id="Flow_1s9wrg7" sourceRef="Activity_1cbj1n7" targetRef="Event_1w7v8cw" />
+    <bpmn:sequenceFlow id="Flow_1s9wrg7" sourceRef="Activity_1cbj1n7" targetRef="Activity_0j6q7xu" />
+    <bpmn:serviceTask id="Activity_0j6q7xu" name="Create task in jira" camunda:type="external" camunda:topic="createJiraTask">
+      <bpmn:incoming>Flow_1s9wrg7</bpmn:incoming>
+      <bpmn:outgoing>Flow_0j00b1c</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_0j00b1c" sourceRef="Activity_0j6q7xu" targetRef="Event_1w7v8cw" />
   </bpmn:process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
     <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="consumer-service">
       <bpmndi:BPMNShape id="Activity_0zzah5s_di" bpmnElement="Activity_0zzah5s">
         <dc:Bounds x="280" y="60" width="100" height="80" />
         <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1w7v8cw_di" bpmnElement="Event_1w7v8cw">
+        <dc:Bounds x="932" y="82" width="36" height="36" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Event_141vywk_di" bpmnElement="Event_141vywk">
         <dc:Bounds x="182" y="82" width="36" height="36" />
@@ -51,15 +59,16 @@
           <dc:Bounds x="450" y="51" width="80" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Event_1w7v8cw_di" bpmnElement="Event_1w7v8cw">
-        <dc:Bounds x="932" y="82" width="36" height="36" />
-      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_18dijz9_di" bpmnElement="Activity_18dijz9">
         <dc:Bounds x="680" y="60" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1cbj1n7_di" bpmnElement="Activity_1cbj1n7">
         <dc:Bounds x="680" y="170" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0j6q7xu_di" bpmnElement="Activity_0j6q7xu">
+        <dc:Bounds x="820" y="170" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_0iugg34_di" bpmnElement="Flow_0iugg34">
@@ -91,6 +100,10 @@
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1s9wrg7_di" bpmnElement="Flow_1s9wrg7">
         <di:waypoint x="780" y="210" />
+        <di:waypoint x="820" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0j00b1c_di" bpmnElement="Flow_0j00b1c">
+        <di:waypoint x="920" y="210" />
         <di:waypoint x="950" y="210" />
         <di:waypoint x="950" y="118" />
       </bpmndi:BPMNEdge>
