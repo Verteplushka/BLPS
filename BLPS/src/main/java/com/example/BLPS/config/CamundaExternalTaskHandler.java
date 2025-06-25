@@ -141,32 +141,29 @@ public class CamundaExternalTaskHandler {
                     externalTaskService.complete(externalTask, variables);
                 })
                 .open();
-
-
-
-
         client.subscribe("changePlatform")
                 .handler((externalTask, externalTaskService) -> {
                     Map<String, Object> variables = new HashMap<>();
                     try {
                         String currentPlatform = externalTask.getVariable("currentPlatform").toString();
-                        System.out.println(currentPlatform);
                         applicationService.changePlatform(currentPlatform);
 
                         variables.put("changeStatus", "SUCCESS");
                         variables.put("changeMessage", "Platform changed successfully");
+                        externalTaskService.complete(externalTask, variables);
 
                     } catch (Exception e) {
-                        variables.put("changeStatus", "FAILED");
-                        variables.put("changeError", e.getMessage());
-                        externalTaskService.handleFailure(
-                                externalTask,
-                                e.getMessage(),
-                                e.toString(),
-                                0, // попыток больше не будет
-                                0  // без задержки
-                        );
+                        externalTaskService.handleBpmnError(externalTask, "PLATFORM_DOES_NOT_EXIST", "Chosen platform does not exist");
                     }
+                })
+                .open();
+        client.subscribe("showPlatformError")
+                .handler((externalTask, externalTaskService) -> {
+                    Map<String, Object> variables = new HashMap<>();
+                    String currentPlatform = externalTask.getVariable("currentPlatform").toString();
+
+                    variables.put("changeStatus", "FAILED");
+                    variables.put("changeMessage", currentPlatform + " platform does not exist");
 
                     externalTaskService.complete(externalTask, variables);
                 })
@@ -294,9 +291,12 @@ public class CamundaExternalTaskHandler {
                         String jsonRecommended = externalTask.getVariable("recommended");
                         String jsonByTags = externalTask.getVariable("byTags");
 
-                        List<ApplicationDto> top10 = mapper.readValue(jsonTop10, new TypeReference<List<ApplicationDto>>() {});
-                        List<ApplicationDto> recommended = mapper.readValue(jsonRecommended, new TypeReference<List<ApplicationDto>>() {});
-                        List<CategoryDto> byTags = mapper.readValue(jsonByTags, new TypeReference<List<CategoryDto>>() {});
+                        List<ApplicationDto> top10 = mapper.readValue(jsonTop10, new TypeReference<List<ApplicationDto>>() {
+                        });
+                        List<ApplicationDto> recommended = mapper.readValue(jsonRecommended, new TypeReference<List<ApplicationDto>>() {
+                        });
+                        List<CategoryDto> byTags = mapper.readValue(jsonByTags, new TypeReference<List<CategoryDto>>() {
+                        });
 
                         List<CategoryDto> categories = new ArrayList<>();
                         categories.add(new CategoryDto("popular", top10));
@@ -329,8 +329,8 @@ public class CamundaExternalTaskHandler {
         client.subscribe("showAppInfo")
                 .handler((externalTask, externalTaskService) -> {
                     try {
-                        Long currentPlatform = Long.valueOf(externalTask.getVariable("selectedAppId").toString());
-                        ApplicationDtoDetailed app = applicationService.getApp(currentPlatform);
+                        Long appId = Long.valueOf(externalTask.getVariable("selectedAppId").toString());
+                        ApplicationDtoDetailed app = applicationService.getApp(appId);
 
                         ObjectMapper mapper = new ObjectMapper();
                         String appsJson = mapper.writeValueAsString(app);
@@ -340,21 +340,21 @@ public class CamundaExternalTaskHandler {
                                 .serializationDataFormat("application/json")
                                 .create();
 
-                        externalTaskService.complete(externalTask, Map.of("appJson", appsValue));
-
+                        externalTaskService.complete(externalTask, Map.of("showAppStatus", "SUCCESS", "appJson", appsValue));
                     } catch (Exception e) {
-                        Map<String, Object> variables = new HashMap<>();
-                        variables.put("showAppStatus", "FAILED");
-                        variables.put("showAppError", e.getMessage());
-                        externalTaskService.handleFailure(
-                                externalTask,
-                                e.getMessage(),
-                                e.toString(),
-                                0, // попыток больше не будет
-                                0  // без задержки
-                        );
-                        externalTaskService.complete(externalTask, variables);
+                        externalTaskService.handleBpmnError(externalTask, "APP_DOES_NOT_EXIST", "Chosen app does not exist");
                     }
+                })
+                .open();
+        client.subscribe("showAppError")
+                .handler((externalTask, externalTaskService) -> {
+                    Map<String, Object> variables = new HashMap<>();
+                    Long appId = Long.valueOf(externalTask.getVariable("selectedAppId").toString());
+
+                    variables.put("showAppStatus", "FAILED");
+                    variables.put("showAppMessage", "App with id " + appId + " does not exist");
+
+                    externalTaskService.complete(externalTask, variables);
                 })
                 .open();
         client.subscribe("searchAppByExactMatch")

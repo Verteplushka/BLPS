@@ -94,17 +94,16 @@ public class ApplicationController {
             @RequestParam String processInstanceId
     ) {
         try {
-
             restMethods.completeTaskAndWaitForResult(processInstanceId, Map.of("selectedAction", "changePlatform"));
             Map<String, Object> result = restMethods.completeTaskAndWaitForResult(processInstanceId, Map.of("currentPlatform", platform));
 
-            String status = (String) result.getOrDefault("status", "UNKNOWN");
+            String status = (String) restMethods.getVariableByProcessId(processInstanceId, "changeStatus");
 
             if ("FAILED".equalsIgnoreCase(status) || "TIMEOUT".equalsIgnoreCase(status)) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(Map.of(
                                 "status", status,
-                                "error", result.getOrDefault("error", "Couldn't change platform"),
+                                "error", restMethods.getVariableByProcessId(processInstanceId, "changeMessage"),
                                 "processInstanceId", processInstanceId
                         ));
             }
@@ -131,13 +130,13 @@ public class ApplicationController {
             restMethods.completeTaskAndWaitForResult(processInstanceId, Map.of("selectedAction", "clickApp"));
             Map<String, Object> result = restMethods.completeTaskAndWaitForResult(processInstanceId, Map.of("selectedAppId", id));
 
-            String status = (String) result.getOrDefault("status", "UNKNOWN");
+            String status = (String) restMethods.getVariableByProcessId(processInstanceId, "showAppStatus");
 
             if ("FAILED".equalsIgnoreCase(status) || "TIMEOUT".equalsIgnoreCase(status)) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body(Map.of(
                                 "status", status,
-                                "error", result.getOrDefault("error", "Couldn't get app"),
+                                "error", restMethods.getVariableByProcessId(processInstanceId, "showAppMessage"),
                                 "processInstanceId", processInstanceId
                         ));
             }
