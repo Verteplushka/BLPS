@@ -1,0 +1,329 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.35.0">
+  <bpmn:error id="Error_AppDoesNotExist" errorCode="APP_DOES_NOT_EXIST_DEV" />
+  <bpmn:process id="developer_process" isExecutable="true" camunda:historyTimeToLive="180">
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:outgoing>Flow_194n276</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="Activity_1m4sy3s" name="Developer opens management page">
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_194n276</bpmn:incoming>
+      <bpmn:outgoing>Flow_1kow130</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_194n276" sourceRef="StartEvent_1" targetRef="Activity_1m4sy3s" />
+    <bpmn:serviceTask id="Activity_10huypy" name="Show developer&#39;s apps list" camunda:type="external" camunda:topic="showDevelopersApps">
+      <bpmn:incoming>Flow_1kow130</bpmn:incoming>
+      <bpmn:outgoing>Flow_05pq0pe</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_1kow130" sourceRef="Activity_1m4sy3s" targetRef="Activity_10huypy" />
+    <bpmn:userTask id="Activity_03w6ocr" name="Developer looks through apps">
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+        <camunda:formData>
+          <camunda:formField id="selectedAction" label="Select action" type="enum">
+            <camunda:value id="delete" name="Delete" />
+            <camunda:value id="update" name="Update" />
+            <camunda:value id="createNew" name="Create New" />
+          </camunda:formField>
+        </camunda:formData>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_05pq0pe</bpmn:incoming>
+      <bpmn:incoming>Flow_1ptso5h</bpmn:incoming>
+      <bpmn:outgoing>Flow_1v0txqp</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_05pq0pe" sourceRef="Activity_10huypy" targetRef="Activity_03w6ocr" />
+    <bpmn:endEvent id="Event_0e5cdw3">
+      <bpmn:incoming>Flow_06sif15</bpmn:incoming>
+      <bpmn:incoming>Flow_06hlg8w</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:exclusiveGateway id="Gateway_0akck99">
+      <bpmn:incoming>Flow_1v0txqp</bpmn:incoming>
+      <bpmn:outgoing>Flow_065rz1a</bpmn:outgoing>
+      <bpmn:outgoing>Flow_0fqfj8n</bpmn:outgoing>
+      <bpmn:outgoing>Flow_1xgp7kt</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_1v0txqp" sourceRef="Activity_03w6ocr" targetRef="Gateway_0akck99" />
+    <bpmn:userTask id="Activity_04iuo7y" name="Developer deletes app">
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+        <camunda:formData>
+          <camunda:formField id="appId" label="Application ID to delete" type="long" required="true" />
+        </camunda:formData>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_065rz1a</bpmn:incoming>
+      <bpmn:outgoing>Flow_0uobrqu</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="Activity_1jfcjzp" name="Developer updates app">
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+        <camunda:formData>
+          <camunda:formField id="appId" label="Application ID to update" type="long" required="true" />
+          <camunda:formField id="name" label="App Name" type="string" />
+          <camunda:formField id="description" label="Description" type="string" />
+          <camunda:formField id="price" label="Price" type="long" />
+          <camunda:formField id="imageUrl" label="Image URL" type="string" />
+          <camunda:formField id="hasPaidContent" label="Has Paid Content" type="boolean" />
+          <camunda:formField id="hasAds" label="Has Ads" type="boolean" />
+          <camunda:formField id="isEditorsChoice" label="Editor&#39;s Choice" type="boolean" />
+          <camunda:formField id="ageLimit" label="Age Limit" type="long" />
+          <camunda:formField id="isRecommended" label="Recommended" type="boolean" />
+          <camunda:formField id="platformIds" label="Platform IDs (comma-separated)" type="string" />
+          <camunda:formField id="tagIds" label="Tag IDs (comma-separated)" type="string" />
+        </camunda:formData>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0fqfj8n</bpmn:incoming>
+      <bpmn:outgoing>Flow_1pbbz5x</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="Activity_04oixqk" name="Developer adds new app">
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+        <camunda:formData>
+          <camunda:formField id="name" label="App Name" type="string" />
+          <camunda:formField id="description" label="Description" type="string" />
+          <camunda:formField id="price" label="Price" type="long" />
+          <camunda:formField id="imageUrl" label="Image URL" type="string" />
+          <camunda:formField id="hasPaidContent" label="Has Paid Content" type="boolean" />
+          <camunda:formField id="hasAds" label="Has Ads" type="boolean" />
+          <camunda:formField id="isEditorsChoice" label="Editor&#39;s Choice" type="boolean" />
+          <camunda:formField id="ageLimit" label="Age Limit" type="long" />
+          <camunda:formField id="isRecommended" label="Recommended" type="boolean" />
+          <camunda:formField id="platformIds" label="Platform IDs (comma-separated)" type="string" />
+          <camunda:formField id="tagIds" label="Tag IDs (comma-separated)" type="string" />
+        </camunda:formData>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1xgp7kt</bpmn:incoming>
+      <bpmn:outgoing>Flow_0qg27pe</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_065rz1a" sourceRef="Gateway_0akck99" targetRef="Activity_04iuo7y">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">
+    ${selectedAction == 'delete'}
+  </bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_0fqfj8n" sourceRef="Gateway_0akck99" targetRef="Activity_1jfcjzp">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">
+    ${selectedAction == 'update'}
+  </bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_1xgp7kt" sourceRef="Gateway_0akck99" targetRef="Activity_04oixqk">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">
+    ${selectedAction == 'createNew'}
+  </bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:serviceTask id="Activity_0uko502" name="Update app" camunda:type="external" camunda:topic="updateApp">
+      <bpmn:incoming>Flow_1pbbz5x</bpmn:incoming>
+      <bpmn:outgoing>Flow_1pw2vzp</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_1pbbz5x" sourceRef="Activity_1jfcjzp" targetRef="Activity_0uko502" />
+    <bpmn:sequenceFlow id="Flow_1pw2vzp" sourceRef="Activity_0uko502" targetRef="Activity_1chu4lg" />
+    <bpmn:serviceTask id="Activity_0q0p9pt" name="Delete app" camunda:type="external" camunda:topic="deleteApp">
+      <bpmn:incoming>Flow_0uobrqu</bpmn:incoming>
+      <bpmn:outgoing>Flow_06sif15</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_0uobrqu" sourceRef="Activity_04iuo7y" targetRef="Activity_0q0p9pt" />
+    <bpmn:sequenceFlow id="Flow_06sif15" sourceRef="Activity_0q0p9pt" targetRef="Event_0e5cdw3" />
+    <bpmn:sequenceFlow id="Flow_0624k3j" sourceRef="Activity_13d1i4r" targetRef="Activity_1chu4lg" />
+    <bpmn:sequenceFlow id="Flow_0qg27pe" sourceRef="Activity_04oixqk" targetRef="Activity_13d1i4r" />
+    <bpmn:serviceTask id="Activity_13d1i4r" name="Save new app" camunda:type="external" camunda:topic="saveApp">
+      <bpmn:incoming>Flow_0qg27pe</bpmn:incoming>
+      <bpmn:outgoing>Flow_0624k3j</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sendTask id="Activity_1chu4lg" name="Create moderation task in ActiveMQ" camunda:type="external" camunda:topic="createModerationTask">
+      <bpmn:incoming>Flow_0624k3j</bpmn:incoming>
+      <bpmn:incoming>Flow_1pw2vzp</bpmn:incoming>
+      <bpmn:outgoing>Flow_06hlg8w</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:sequenceFlow id="Flow_06hlg8w" sourceRef="Activity_1chu4lg" targetRef="Event_0e5cdw3" />
+    <bpmn:boundaryEvent id="Event_0xrmqcc" attachedToRef="Activity_0q0p9pt">
+      <bpmn:outgoing>Flow_0qgkh1h</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrorEventDefinition_0fwv06f" errorRef="Error_AppDoesNotExist" />
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Event_0symclp" attachedToRef="Activity_0uko502">
+      <bpmn:outgoing>Flow_17jd4lk</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrorEventDefinition_1i62otp" errorRef="Error_AppDoesNotExist" />
+    </bpmn:boundaryEvent>
+    <bpmn:serviceTask id="Activity_0hfj4ad" name="Show developer app not found error" camunda:type="external" camunda:topic="showAppNotFoundError">
+      <bpmn:incoming>Flow_0qgkh1h</bpmn:incoming>
+      <bpmn:incoming>Flow_17jd4lk</bpmn:incoming>
+      <bpmn:outgoing>Flow_1ptso5h</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_0qgkh1h" sourceRef="Event_0xrmqcc" targetRef="Activity_0hfj4ad" />
+    <bpmn:sequenceFlow id="Flow_17jd4lk" sourceRef="Event_0symclp" targetRef="Activity_0hfj4ad" />
+    <bpmn:sequenceFlow id="Flow_1ptso5h" sourceRef="Activity_0hfj4ad" targetRef="Activity_03w6ocr" />
+    <bpmn:textAnnotation id="TextAnnotation_16j9xgc">
+      <bpmn:text>App does not exist error</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Association_0x8w0pp" associationDirection="None" sourceRef="Event_0xrmqcc" targetRef="TextAnnotation_16j9xgc" />
+    <bpmn:textAnnotation id="TextAnnotation_1afgvkk">
+      <bpmn:text>App does not exist error</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Association_0a52cle" associationDirection="None" sourceRef="Event_0symclp" targetRef="TextAnnotation_1afgvkk" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="developer_process">
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="182" y="212" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1m4sy3s_di" bpmnElement="Activity_1m4sy3s">
+        <dc:Bounds x="270" y="190" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_10huypy_di" bpmnElement="Activity_10huypy">
+        <dc:Bounds x="430" y="450" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_03w6ocr_di" bpmnElement="Activity_03w6ocr">
+        <dc:Bounds x="600" y="190" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0e5cdw3_di" bpmnElement="Event_0e5cdw3">
+        <dc:Bounds x="1342" y="212" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0akck99_di" bpmnElement="Gateway_0akck99" isMarkerVisible="true">
+        <dc:Bounds x="775" y="205" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_04iuo7y_di" bpmnElement="Activity_04iuo7y">
+        <dc:Bounds x="910" y="80" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1jfcjzp_di" bpmnElement="Activity_1jfcjzp">
+        <dc:Bounds x="910" y="190" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_04oixqk_di" bpmnElement="Activity_04oixqk">
+        <dc:Bounds x="910" y="300" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0uko502_di" bpmnElement="Activity_0uko502">
+        <dc:Bounds x="1030" y="580" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0q0p9pt_di" bpmnElement="Activity_0q0p9pt">
+        <dc:Bounds x="1150" y="470" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_13d1i4r_di" bpmnElement="Activity_13d1i4r">
+        <dc:Bounds x="910" y="650" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1chu4lg_di" bpmnElement="Activity_1chu4lg">
+        <dc:Bounds x="1140" y="650" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0hfj4ad_di" bpmnElement="Activity_0hfj4ad">
+        <dc:Bounds x="760" y="470" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Association_0x8w0pp_di" bpmnElement="Association_0x8w0pp">
+        <di:waypoint x="1248" y="452" />
+        <di:waypoint x="1242" y="391" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Association_0a52cle_di" bpmnElement="Association_0a52cle">
+        <di:waypoint x="1148" y="580" />
+        <di:waypoint x="1200" y="580" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Event_0symclp_di" bpmnElement="Event_0symclp">
+        <dc:Bounds x="1112" y="562" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0xrmqcc_di" bpmnElement="Event_0xrmqcc">
+        <dc:Bounds x="1232" y="452" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_194n276_di" bpmnElement="Flow_194n276">
+        <di:waypoint x="218" y="230" />
+        <di:waypoint x="270" y="230" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1kow130_di" bpmnElement="Flow_1kow130">
+        <di:waypoint x="370" y="230" />
+        <di:waypoint x="400" y="230" />
+        <di:waypoint x="400" y="490" />
+        <di:waypoint x="430" y="490" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_05pq0pe_di" bpmnElement="Flow_05pq0pe">
+        <di:waypoint x="530" y="490" />
+        <di:waypoint x="565" y="490" />
+        <di:waypoint x="565" y="230" />
+        <di:waypoint x="600" y="230" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1v0txqp_di" bpmnElement="Flow_1v0txqp">
+        <di:waypoint x="700" y="230" />
+        <di:waypoint x="775" y="230" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_065rz1a_di" bpmnElement="Flow_065rz1a">
+        <di:waypoint x="800" y="205" />
+        <di:waypoint x="800" y="120" />
+        <di:waypoint x="910" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0fqfj8n_di" bpmnElement="Flow_0fqfj8n">
+        <di:waypoint x="825" y="230" />
+        <di:waypoint x="910" y="230" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1xgp7kt_di" bpmnElement="Flow_1xgp7kt">
+        <di:waypoint x="800" y="255" />
+        <di:waypoint x="800" y="340" />
+        <di:waypoint x="910" y="340" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1pbbz5x_di" bpmnElement="Flow_1pbbz5x">
+        <di:waypoint x="1010" y="230" />
+        <di:waypoint x="1080" y="230" />
+        <di:waypoint x="1080" y="580" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1pw2vzp_di" bpmnElement="Flow_1pw2vzp">
+        <di:waypoint x="1130" y="620" />
+        <di:waypoint x="1190" y="620" />
+        <di:waypoint x="1190" y="650" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0uobrqu_di" bpmnElement="Flow_0uobrqu">
+        <di:waypoint x="1010" y="120" />
+        <di:waypoint x="1180" y="120" />
+        <di:waypoint x="1180" y="470" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_06sif15_di" bpmnElement="Flow_06sif15">
+        <di:waypoint x="1250" y="510" />
+        <di:waypoint x="1291" y="510" />
+        <di:waypoint x="1291" y="190" />
+        <di:waypoint x="1360" y="190" />
+        <di:waypoint x="1360" y="212" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0624k3j_di" bpmnElement="Flow_0624k3j">
+        <di:waypoint x="1010" y="690" />
+        <di:waypoint x="1140" y="690" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0qg27pe_di" bpmnElement="Flow_0qg27pe">
+        <di:waypoint x="960" y="380" />
+        <di:waypoint x="960" y="650" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_06hlg8w_di" bpmnElement="Flow_06hlg8w">
+        <di:waypoint x="1240" y="690" />
+        <di:waypoint x="1360" y="690" />
+        <di:waypoint x="1360" y="248" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0qgkh1h_di" bpmnElement="Flow_0qgkh1h">
+        <di:waypoint x="1250" y="452" />
+        <di:waypoint x="1250" y="432" />
+        <di:waypoint x="810" y="432" />
+        <di:waypoint x="810" y="470" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_17jd4lk_di" bpmnElement="Flow_17jd4lk">
+        <di:waypoint x="1130" y="562" />
+        <di:waypoint x="1130" y="522" />
+        <di:waypoint x="880" y="520" />
+        <di:waypoint x="860" y="520" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1ptso5h_di" bpmnElement="Flow_1ptso5h">
+        <di:waypoint x="760" y="510" />
+        <di:waypoint x="730" y="510" />
+        <di:waypoint x="730" y="260" />
+        <di:waypoint x="700" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="TextAnnotation_16j9xgc_di" bpmnElement="TextAnnotation_16j9xgc">
+        <dc:Bounds x="1190" y="350" width="100" height="41" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="TextAnnotation_1afgvkk_di" bpmnElement="TextAnnotation_1afgvkk">
+        <dc:Bounds x="1200" y="565" width="100" height="41" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

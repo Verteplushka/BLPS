@@ -1,0 +1,142 @@
+package org.example;
+
+import javax.jms.*;
+import javax.jms.Connection;
+
+import jakarta.resource.ResourceException;
+import org.apache.activemq.ActiveMQConnectionFactory;
+import org.example.Entity.Application;
+import org.example.Entity.Developer;
+import org.example.Entity.Status;
+
+import java.sql.*;
+import java.util.Arrays;
+import java.util.List;
+
+public class Main {
+
+    static final String BROKER_URL = "tcp://localhost:16161";
+    static final String QUEUE_NAME = "queue.moderation-queue";
+
+    static final String JDBC_URL = "jdbc:postgresql://localhost:5432/studs";
+    static final String JDBC_USER = "admin";
+    static final String JDBC_PASS = "admin";
+
+    private static final List<String> BAD_WORDS = Arrays.asList(
+            "shit", "fuck", "nigger", "asshole", "bitch", "cunt",
+            "dick", "piss", "cock", "pussy", "faggot", "whore"
+    );
+
+    public static void main(String[] args) throws Exception {
+        new CamundaExternalTaskHandler().subscribeTasks();
+
+        ConnectionFactory connectionFactory = new ActiveMQConnectionFactory(BROKER_URL);
+        Connection connection = connectionFactory.createConnection();
+        connection.start();
+
+        Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+        Destination queue = session.createQueue(QUEUE_NAME);
+
+        MessageConsumer consumer = session.createConsumer(queue);
+
+        consumer.setMessageListener(message -> {
+            if (message instanceof BytesMessage bytesMessage) {
+                try {
+                    byte[] data = new byte[(int) bytesMessage.getBodyLength()];
+                    bytesMessage.readBytes(data);
+                    String text = new String(data);
+
+                    Integer appId = Integer.parseInt(text);
+                    CamundaNotifier.sendModerationMessage(appId);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+        System.out.println("✅ JMS listener started. Waiting for messages...");
+    }
+
+    public static boolean checkApp(Integer appId){
+        Application app = getAppFromDatabase(appId);
+
+        if (app != null) {
+            System.out.println("📥 Got app: " + app.getName());
+
+            boolean hasBadWords = containsBadWords(app.getName()) || containsBadWords(app.getDescription());
+
+            System.out.println(hasBadWords ? "❌ Bad words detected" : "✅ App is clean");
+            return hasBadWords;
+
+        } else {
+            System.out.println("❌ App not found in DB");
+            throw new RuntimeException("App not found in DB");
+        }
+    }
+
+    public static boolean containsBadWords(String text) {
+        if (text == null || text.isEmpty()) {
+            return false;
+        }
+
+        String lowerText = text.toLowerCase();
+        return BAD_WORDS.stream().anyMatch(lowerText::contains);
+    }
+        // реализовать через список плохих слов +
+        // jira или любой task-tracker +
+        // задача попадает в task-tracker и висит там до тех пор пока админ не закончит модерацию, чтобы там изменялись статусы задачи +
+
+
+    public static Application getAppFromDatabase(Integer appId) {
+        try (java.sql.Connection conn = DriverManager.getConnection(JDBC_URL, JDBC_USER, JDBC_PASS)) {
+            String sql = "SELECT * FROM applications WHERE id = ?";
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ps.setInt(1, appId);
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                Application app = new Application();
+                app.setId(rs.getInt("id"));
+                app.setName(rs.getString("name"));
+                app.setDescription(rs.getString("description"));
+                app.setStatus(Status.valueOf(rs.getString("moderation_status")));
+                app.setDeveloper(getDeveloperById(conn, rs.getInt("developer_id")));
+                return app;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    private static Developer getDeveloperById(java.sql.Connection conn, int developerId) throws SQLException {
+        String sql = "SELECT * FROM developers WHERE id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, developerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    Developer dev = new Developer();
+                    dev.setId(rs.getInt("id"));
+                    dev.setUserId(rs.getInt("user_id"));
+                    dev.setName(rs.getString("name"));
+                    dev.setWebsite(rs.getString("website"));
+                    return dev;
+                }
+            }
+        }
+        return null;
+    }
+
+
+    public static void updateAppStatus(Integer appId, Status status) {
+        try (java.sql.Connection conn = DriverManager.getConnection(JDBC_URL, JDBC_USER, JDBC_PASS)) {
+            String sql = "UPDATE applications SET moderation_status = ? WHERE id = ?";
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ps.setString(1, status.name());
+            ps.setInt(2, appId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+}
